@@ -1,158 +1,76 @@
-# EC2 운영 배포 준비 및 절차
+# EC2 운영 배포 절차
 
-이 문서는 GitHub Actions가 ECR에 올린 이미지를 EC2에서 실행하기 위한 준비 문서입니다. `compose.yaml`과 개발용 `.env`는 그대로 두고, 운영에는 `compose.prod.yaml`과 EC2에만 보관하는 `.env.prod`를 사용합니다.
+2026-11-07 read-only 인벤토리에서 확인한 현재 대상은 기존 서비스가 운영 중인 dev-stud-server다. 앱·관리자·PostgreSQL 컨테이너, `seoul-wave-prod-postgres-data` 및 `seoul-wave-prod-monitor-state` 볼륨, `.env.prod`, 두 Compose 파일과 호스트 Nginx가 존재한다. `.env.prod` 내용과 비밀값은 읽거나 기록하지 않았다. 2026-11-06의 “컨테이너·볼륨 없음” 관찰과 공개 IP/DNS는 현재 상태로 간주하지 않는다.
 
-2026-11-06 사용자가 SSH로 확인한 현재 상태를 반영했습니다. Codex는 EC2에 접속하거나 서버 설정을 변경하지 않았습니다. 실제 Compose 실행, DB 초기화·마이그레이션, Nginx 적용은 별도 승인을 받기 전까지 수행하지 않습니다.
+## 자동 배포 경로
 
-| 항목 | 확인된 현재 상태 |
-| --- | --- |
-| 인스턴스 | `dev-stud-server` (`t3.small`), Public IP `13.125.215.42` |
-| IAM | Instance Profile Role `ec2-ecr-read`; `sts get-caller-identity` 성공 |
-| Backend ECR | `seoulwave:0a662217736ca2f9f348d1806080cdaad87d531d`의 `batch-get-image` 성공 |
-| Docker | 실행 중인 컨테이너 없음, Docker Volume 없음, Compose 프로젝트 없음. 이전 프론트 이미지와 종료된 테스트 컨테이너만 존재 |
-| Nginx | 호스트에서 80번 포트 사용 중, 현재 upstream은 `127.0.0.1:8000` |
-| 자원 | Linux에서 메모리 총량 약 1.9 GiB, available 약 1.4 GiB, swap 없음, 루트 디스크 여유 약 25 GB |
+`dev`에 대한 `Verified application pipeline`의 성공한 push 완료만 CD 대상으로 삼는다. CD는 원본 workflow run의 `verified-release` 하나만 조회하고, 만료되지 않은지와 GitHub artifact SHA-256을 검사한 뒤 `release.json`을 기존 `validate_release` 및 배포 계약으로 검증한다. GitHub API bearer token은 첫 API 요청에만 보내며 artifact의 교차 호스트 redirect에는 전달하지 않는다. 해당 커밋이 계속 최신 `dev` HEAD이고 한국 시간 09:00–18:00 접수 구간인지 SSM 호출 직전에도 다시 확인한다.
 
-## 구성
+- 동시성 그룹은 하나로 고정하고 진행 중인 배포는 취소하지 않는다 (`cancel-in-progress: false`).
+- OIDC 역할은 `arn:aws:iam::909345918351:role/SeoulWave-Deploy`, 리전은 `ap-northeast-2`다. SSM 문서 `SeoulWave-Deploy-v1` 버전 `1`과 인스턴스 `i-0bedbcc72c616cdb1`만 사용한다. 파라미터는 원본 SHA/run ID, 두 digest 이미지, 두 config ID뿐이다. SSH 키, 임의 명령, 다른 문서나 인스턴스는 사용하지 않는다.
+- 디스패처는 다단계 SSM 문서의 `runFixedDeployment` step을 지정해 polling한다. 해당 step이 아직 materialize되지 않아 발생한 `InvalidPluginName`은 초기 응답으로 재시도하며, 선행 고정 step의 실패도 확인한다. 고정 step들이 아직 조회되지 않는 `InvalidPluginName`/`InvocationDoesNotExist` 상태가 120초간 지속되면, plugin 오류는 `ssm_plugin_not_materialized`, 기타 invocation 미생성은 `ssm_poll_timeout`으로 빠르게 종료해 배포 잠금을 오래 점유하지 않는다. 선행 step이 실제 `InProgress`이면 일반 SSM 실행 제한 안에서 계속 기다린다. 성공 결과는 release ID, backend/frontend의 이미지 identity, migration dry-run, loopback HTTP 점검(프록시 health, 보호 API, 로그인, 시간표)이 모두 기대값과 일치해야 한다. Docker image store에 따라 실행 이미지 ID가 config digest 또는 해당 ECR manifest digest로 표시될 수 있으므로, 둘 중 현재 릴리스에서 직접 도출한 값만 허용한다. 두 이미지를 pull한 뒤 Compose 변경 전에 같은 identity를 사전 확인하고, 서비스별 불일치는 안전한 코드로 구분한다. `deployment-evidence` Artifact는 원본 run/SHA, release Artifact ID/digest, 배포 대상 이미지 digest, 확인된 image identity와 HTTP 점검, SSM command ID/최종 상태를 보존한다. 원격 stdout/stderr와 비밀값은 증빙이나 Discord 알림에 넣지 않는다.
+- 기존 `DISCORD_WEBHOOK_URL` convention을 사용해 배포 성공/실패만 알린다. 알림에는 비밀값·원격 stdout/stderr를 넣지 않고 사용자/소유자 mention도 하지 않는다. 15분 무응답 owner escalation은 구현 범위 밖이며 별도 운영 항목으로 남아 있다.
+- 자동 경로는 backend, frontend, itinerary-worker, database-health-monitor 앱 서비스만 다룬다. DB migration, 데이터 적재, PostgreSQL·관리자 서비스 변경, `.env.prod` 변경은 하지 않는다. 새 이미지 검증 실패 시 호스트 runner의 `not_applied`, `rolled_back`, `rollback_failed` 결과를 구분해 확인한다.
 
-```mermaid
-flowchart LR
-  Dev[PR 병합 또는 dev 코드 변경] --> FC[Frontend CI: lint, typecheck, test, build]
-  Dev --> BC[Backend CI: PostgreSQL 18, migrations, pytest, coverage]
-  FC --> FECR[ECR: seoul-wave-frontend / commit SHA]
-  BC --> BECR[ECR: seoulwave / commit SHA]
-  FECR --> EC2[EC2 Docker Compose]
-  BECR --> EC2
-  EC2 --> HOSTN[Host Nginx :80]
-  HOSTN --> FE[Frontend container 127.0.0.1:8080]
-  FE -->|/api/ proxy inside Docker| API[FastAPI backend :8000 internal]
-  API --> DB[(PostgreSQL 18 / Compose named volume)]
-  Worker[itinerary-worker] --> DB
-  Worker --> LLM[OpenAI 및 서울시 API]
-```
+## 현재 호스트 경계
 
-프론트엔드 CI는 `dev`에 push됐을 때 검사 성공 후 SHA 태그 이미지를 업로드합니다. 백엔드 CI도 테스트용 PostgreSQL에서 마이그레이션과 pytest·커버리지를 확인하고 통과한 커밋의 이미지를 업로드합니다. 현재 배포 workflow는 EC2에 자동 배포하지 않습니다. EC2에서 Compose 실행은 별도 승인 후 수동으로 합니다.
+- 호스트 Nginx :80 → 사용자 앱 loopback 127.0.0.1:8080, `/admin/` → 관리자 loopback 127.0.0.1:8081. 컨테이너 앱 포트는 loopback에만 공개된다.
+- PostgreSQL 18과 기존 앱/관리자 서비스는 이미 존재한다. `seoul-wave-prod-postgres-data`와 `seoul-wave-prod-monitor-state` named volume, 운영 `.env.prod`, 호스트 Nginx 설정을 보존한다.
+- 배포 대상 ECR은 backend `seoulwave` 및 frontend `seoul-wave-frontend`의 digest-pinned 참조다. CI가 검증한 이미지를 그대로 사용하며 배포 단계에서 rebuild하지 않는다. `latest`는 사용하지 않는다.
+- 2026-11-08 실제 배포 후 공개 `http://13.125.158.52/` 및 `/api/health`를 외부에서 확인했고 둘 다 HTTP 200이었다. DNS는 별도로 확인하지 않았다.
 
-## 확인된 이미지와 저장소
+## 신규 호스트 Bootstrap only (자동 재배포에는 사용하지 않음)
 
-2026-11-06 사용자가 Backend 이미지의 `batch-get-image` 조회 성공을 확인했습니다. 카카오맵 키 설정 후 commit `605740fa11d75560f31c932b9ffc01e609535864`의 Frontend CI 검사, 이미지 게시, Discord 알림이 모두 성공했습니다.
+아래 수동 절차는 새 호스트를 별도 승인으로 준비할 때만 참고한다. 기존 dev-stud-server는 이미 서비스·DB·볼륨이 있는 것으로 확인했으므로, 자동 CD는 신규 설치나 데이터 준비를 수행하지 않는다.
 
-| 역할 | 저장소 | 확인된 태그 | 확인된 digest | 비고 |
-| --- | --- | --- | --- | --- |
-| Backend | `seoulwave` | `0a662217736ca2f9f348d1806080cdaad87d531d` | `sha256:881791b49ad472977a7b5cae79361a92535d564744de6ed2e6375eb9440bea28` | Backend CI 성공 후 업로드된 이미지 |
-| Frontend | `seoul-wave-frontend` | `605740fa11d75560f31c932b9ffc01e609535864` | `sha256:f1cfbb1639ee25623ceeefcc48e339accaf09df3272d61e4e9c5e8f857c2f28c` | 키 필수 검사 통과 후 빌드·ECR 업로드 성공 |
+두 저장소를 같은 상위 폴더에 SEOUL-WAVE, SEOUL-WAVE_admin 이름으로 배치한다. 각각 검토된 배포 커밋을 checkout한다. 실제 비밀값을 Git에 올리지 않는다.
 
-프론트엔드 Docker 이미지는 Vite 정적 빌드를 포함하므로 카카오맵 JavaScript 키를 **이미지 빌드 시점에** 전달해야 합니다. 새 CI에서는 해당 값이 비어 있으면 ECR 게시를 실패시키며, 현재 표의 `605740fa...` 이미지가 키 필수 검사를 통과해 게시된 이미지입니다. `latest`는 사용하지 않습니다.
+- SEOUL-WAVE/.env.prod: .env.prod.example을 복사하고 빈 값과 REPLACE_*를 실제 값으로 교체한다.
+- 신규 DB 비밀번호와 32자 이상의 SESSION_SECRET을 무작위로 생성한다. 볼륨 생성 이후 비밀번호를 임의 변경하지 않는다.
+- HTTP 학원 시연은 사용자 승인에 따라 SESSION_COOKIE_SECURE=false를 사용한다. HTTP의 접속 비밀번호와 Basic 인증은 암호화되지 않으므로 학원 시연 범위에서 사용하고 HTTPS를 적용하면 true로 변경한다.
+- ADMIN_API_KEY는 URL-safe 문자 32~128자 무작위 값이다. API와 관리자 Nginx에만 전달하며 브라우저 빌드에 포함하지 않는다.
+- ADMIN_HTPASSWD_FILE은 저장소 밖의 절대 경로다. EC2에서 apache2-utils의 htpasswd -cB <파일경로> <관리자아이디>로 비밀번호를 대화형 입력한다. 비밀번호를 명령 인자나 로그에 남기지 않는다. 상위 전용 디렉터리는 700, 비밀번호 해시 파일은 644로 설정해 호스트에서는 다른 사용자가 상위 디렉터리에 접근하지 못하고, Docker에 마운트된 파일은 Nginx worker가 읽을 수 있게 한다.
+- 장소 SQLite 원본을 서버의 전용 폴더에 업로드한다. PostgreSQL 볼륨을 복사하는 작업이 아니다. 원본은 읽기 전용으로 마운트해 적재한다.
 
-EC2의 Instance Profile Role로 ECR 인증이 동작하고 Backend 이미지 조회가 성공했으므로 이 IAM/ECR 경로는 다시 만들 필요가 없습니다. EC2에 장기 AWS Access Key를 저장하지 말고 기존 Instance Profile Role을 사용합니다.
+## 명령 준비 (EC2 실행은 승인 후)
 
-## 운영 Compose와 데이터 보존
-
-- `compose.prod.yaml`은 ECR 이미지 URI를 받아 씁니다. EC2에서 애플리케이션 이미지를 빌드하지 않습니다.
-- PostgreSQL은 `postgres:18`이며 호스트에 5432 포트를 공개하지 않습니다. DB가 새로 만들어지는 환경이라 사용자·DB 이름은 이번 배포를 위해 정하고 강한 새 비밀번호를 생성합니다.
-- 현재 EC2에는 Docker Volume이 없으므로 `compose.prod.yaml`은 Compose managed named volume `seoul-wave-prod-postgres-data`를 첫 승인된 `up` 때 생성합니다. `external: true`는 기존 볼륨이 없을 때 Compose가 오류를 내므로 제거했습니다. 명시적 `name`은 프로젝트 이름이 달라져도 같은 볼륨 이름을 재사용하게 합니다 ([Docker Compose volume 문서](https://docs.docker.com/reference/compose-file/volumes/)).
-- Compose가 만든 named volume은 컨테이너 재생성 때 유지되지만 `docker compose down -v` 또는 `docker volume rm`은 새 DB 데이터를 삭제하므로 사용하지 않습니다. volume이 만들어진 뒤에는 새 배포라고 비밀번호를 바꾸지 않습니다.
-- PostgreSQL 공식 이미지 18부터 권장 mount 지점은 `/var/lib/postgresql`이고 `PGDATA` 기본값은 `/var/lib/postgresql/18/docker`입니다. 이 설정은 PostgreSQL 18 경로를 사용합니다. 기존 볼륨이 다른 버전·경로에서 만들어졌다면 먼저 버전과 mount를 조사해야 하며, 이 Compose로 전환한다고 데이터가 자동 이전되는 것은 아닙니다. [Docker Official PostgreSQL Image 문서](https://github.com/docker-library/docs/blob/master/postgres/content.md#pgdata)
-- 신규 volume에는 빈 DB가 생성됩니다. API가 DB에 연결돼도 행사·장소·시간표 데이터나 애플리케이션 테이블이 준비됐다는 뜻은 아닙니다. 현재 migration과 초기 데이터 적재는 자동으로 실행하지 않으며 스키마/시드 절차를 확인하고 별도로 승인받아야 합니다.
-- DB 네트워크는 Docker 내부 전용입니다. Backend와 worker는 외부 API 호출을 위해 애플리케이션 네트워크에도 연결됩니다.
-- 기존 호스트 Nginx가 80번 포트를 사용하므로 frontend 컨테이너만 `127.0.0.1:8080`에 바인딩합니다. backend 8000과 PostgreSQL 5432는 호스트에 publish하지 않고 Docker 네트워크 내부에서만 연결합니다. 외부 공개 포트는 host Nginx의 80번으로 유지합니다.
-- 프론트 이미지 내부의 `frontend/nginx.prod.conf`가 `/api/`를 Docker DNS 이름 `backend:8000`으로 전달합니다. 따라서 EC2 host Nginx는 모든 경로를 frontend `127.0.0.1:8080`으로 보내면 되고, 현재 upstream `127.0.0.1:8000`은 바꿔야 루트 URL에서 React 화면이 표시됩니다. [Nginx EC2 설정 예시](nginx-ec2.conf.example) 참고. 변경은 별도 승인을 받은 뒤 적용합니다.
-- Backend readiness는 `/ready`에서 `SELECT 1`을 실행합니다. DB 연결 확인이지 전체 테이블·LLM·외부 API·추천 worker 동작 확인은 아닙니다. `/health`는 프로세스 상태만 확인합니다.
-- Worker는 기존 `python -m app.itinerary_worker` 명령으로 한 개를 실행하며 재시작 정책을 적용합니다. 코드에 worker 전용 health/heartbeat 신호가 없어 Compose healthcheck를 꾸며 넣지 않았습니다. 실행은 `docker compose ps`와 로그로 확인합니다.
-
-### t3.small 메모리 고려
-
-EC2의 사용자 확인값은 Linux에서 약 1.9 GiB 메모리, 시작 전 available 약 1.4 GiB, swap 없음입니다. `t3.small`은 2 GiB 메모리 사양입니다 ([AWS T3 사양](https://aws.amazon.com/ec2/instance-types/t3/)). Compose에서는 DB·API·worker를 각각 한 개만 실행하고, PostgreSQL을 `shared_buffers=128MB`, `max_connections=30`, `work_mem=4MB`, `maintenance_work_mem=64MB`로 제한해 초기 메모리 압력을 낮춥니다.
-
-API·worker의 실제 최대 RSS를 아직 측정하지 않았으므로 임의의 Docker `mem_limit`을 설정하지 않았습니다. 첫 승인된 실행 때 DB → API·frontend → worker 순서로 올리며 각 단계에서 `free -h`, `docker stats`, `docker compose ps` 및 OOM 로그를 확인해야 합니다. available 메모리가 300 MiB 아래로 내려가거나 OOM 재시작이 보이면 다음 서비스를 올리지 말고 중단해 인스턴스 크기·swap·서비스 메모리 정책을 다시 결정합니다. 현재 25 GB 디스크 여유는 확인됐지만, swap을 추가하는 것도 EC2 상태 변경이므로 승인 전에는 하지 않습니다.
-
-## 운영 환경 변수
-
-실제 파일은 EC2에 `.env.prod`라는 이름으로만 저장합니다. 저장소에 올리지 않습니다. `.env.prod.example`의 `REPLACE_...` 문자열은 문서용 값이므로 모두 실제 승인된 값으로 바꿔야 합니다.
-
-| 변수 | 설정 방법 |
-| --- | --- |
-| `BACKEND_IMAGE`, `FRONTEND_IMAGE` | 성공한 ECR 업로드에서 확인한 저장소와 40자리 commit SHA 태그 |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | 새 데이터베이스에 사용할 이름·전용 사용자와 새로 생성한 강한 비밀번호. `.env.prod`에만 저장 |
-| `SESSION_SECRET` | 무작위의 32자 이상 값. 실제 비밀값은 EC2 `.env.prod`에만 저장 |
-| `SITE_ACCESS_PASSWORDS` | 승인된 접속 비밀번호 목록. 쉼표로 구분하며 실제 값을 문서·로그에 쓰지 않음 |
-| `SESSION_COOKIE_SECURE` | HTTPS를 사용자 브라우저까지 적용할 때 `true`. 현재 EC2 Nginx는 HTTP 80만 확인됐으므로, `true` 상태로는 로그인 세션이 유지되지 않음. HTTPS 적용 또는 팀의 명시적 HTTP 시연 정책 결정 전에는 로그인 가능한 서비스로 배포하지 않음 |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | 승인된 OpenAI 키와 모델 식별자 |
-| `SEOUL_CULTURE_API_KEY` | 서울시 문화행사 API를 사용할 경우 발급 키 |
-| `FERRY_STOP_COORDINATES_JSON`, `EVENT_DESTINATION_RADIUS_KM` | worker 선택 설정. 좌표를 확정하지 않았다면 예시 기본값을 임의로 운영 확정값으로 취급하지 않음 |
-| `VITE_KAKAO_MAP_JS_KEY` | 프론트엔드 이미지 **빌드 시** 사용하는 GitHub 저장소 변수. 브라우저에 전달되는 JavaScript 키이므로 Kakao 개발자 콘솔의 허용 도메인을 제한 |
-
-`SESSION_COOKIE_SECURE=true`는 운영 안전 기본값입니다. 현재 확인된 `http://13.125.215.42` 접속 경로에는 TLS가 없으므로 secure cookie가 브라우저에 저장되어도 다음 HTTP 요청에 실리지 않아 로그인이 유지되지 않습니다. 도메인·TLS를 준비하거나, 팀이 시연용 HTTP 위험을 명시적으로 승인한 경우에만 cookie 설정을 별도 결정합니다. 임의로 `false`로 바꾸지 않습니다.
-
-## Nginx 적용 준비
-
-현재 host Nginx는 80번 포트를 사용하면서 기존에는 `127.0.0.1:8000`으로 프록시합니다. Compose는 프론트 컨테이너만 loopback `127.0.0.1:8080`에 공개하고, frontend 컨테이너 안의 Nginx가 `/api/`를 backend 서비스 `backend:8000`으로 전달합니다. 기존 host Nginx의 upstream을 `127.0.0.1:8080`으로 바꾸면 SPA와 API가 같은 host를 거치며 backend 포트를 host에 공개하지 않습니다. 예시의 `server_name` IP는 현재값이므로 IP가 변경되면 기존 server block의 실제 도메인/IP를 유지합니다.
-
-서버에 적용할 때에는 현재 사이트 파일을 백업하고 기존 server block의 proxy location을 수정한 뒤 `sudo nginx -t`를 통과시키고, 승인받은 후에만 reload합니다. 예시 파일을 새 server/default server로 무심코 추가하지 않습니다. Nginx 설치 상태 확인과 설정 검사·적용도 이번 로컬 작업에서는 수행하지 않았습니다.
-
-## 배포 전 읽기 전용 확인
-
-아래 명령은 상태 조회용입니다. 자격 증명이나 `.env` 내용은 출력하지 않습니다. SSH 스냅샷은 사용자가 직접 수행했으며, Codex는 EC2 명령을 실행하지 않았습니다.
-
-로컬 AWS CLI가 연결된 경우:
-
-```powershell
-aws sts get-caller-identity
-aws ec2 describe-instances --region ap-northeast-2 --filters 'Name=tag:Name,Values=dev-stud-server' --query 'Reservations[].Instances[].{State:State.Name,Type:InstanceType,PublicIp:PublicIpAddress,IamProfile:IamInstanceProfile.Arn,SecurityGroups:SecurityGroups[].GroupId}'
-aws ecr describe-images --region ap-northeast-2 --repository-name seoulwave --query 'imageDetails[].{Tags:imageTags,PushedAt:imagePushedAt,Digest:imageDigest}' --output table
-aws ecr describe-images --region ap-northeast-2 --repository-name seoul-wave-frontend --query 'imageDetails[].{Tags:imageTags,PushedAt:imagePushedAt,Digest:imageDigest}' --output table
-```
-
-EC2에서 SSH 접속 후, 승인된 배포 직전에 다시 읽기 전용으로 확인 (이후 서버 상태가 바뀌었을 수 있음):
+서비스 저장소 폴더에서 Bash 함수를 정의한다.
 
 ```bash
-docker --version
-docker compose version
-sudo docker ps -a --no-trunc
-sudo docker volume ls
-sudo ss -ltnp
-sudo systemctl status nginx --no-pager
-df -h /
-free -h
-sudo docker stats --no-stream
+dc() { sudo docker compose --env-file .env.prod -f compose.prod.yaml -f ../SEOUL-WAVE_admin/compose.prod.admin.yaml "$@"; }
+dc config --quiet
+dc pull
 ```
 
-컨테이너의 전체 환경 변수, `docker inspect` 전체 JSON, `.env` 파일을 공유하지 마세요. 실제 상태가 사용자 확인 스냅샷과 다르면 작업을 멈추고 컨테이너·볼륨 mount·`PGDATA`·PostgreSQL 버전을 다시 조사합니다.
+config의 전체 출력을 공유하지 않는다. 비밀값이 펼쳐질 수 있다.
 
-## 스키마와 마이그레이션
+1. 컨테이너·볼륨·80/8080/8081 포트·메모리를 다시 확인한다. 기존 DB가 발견되면 이 신규 설치 절차를 중단한다.
+2. 승인 후 dc up -d db로 DB만 시작한다. pg_isready와 free -h를 확인한다.
+3. dc run --rm --no-deps backend python scripts/apply_migrations.py로 읽기 전용 계획을 확인한다.
+4. 마이그레이션 승인 후 같은 명령 끝에 --apply를 추가한다. 도구는 체크섬과 적용 이력을 저장하며, 이력 없는 기존 테이블이 있거나 적용된 SQL이 바뀌면 거부한다. 각 SQL과 이력은 같은 트랜잭션으로 적용된다. 앱 시작 시에는 실행하지 않는다.
+5. 장소 데이터는 아래처럼 dry-run 후 승인된 적재를 한다. /home/ubuntu/seoul-wave-data는 실제 업로드 폴더로 바꾼다.
 
-백엔드 CI는 매 실행에서 임시 PostgreSQL 18에 `002`~`006` SQL을 순서대로 적용한 뒤 테스트합니다. 이는 EC2 운영 DB에 적용됐다는 뜻이 아닙니다. 현재 SQL에는 일반 `CREATE TABLE`/`CREATE INDEX`와 `ALTER TABLE ... ADD COLUMN`이 포함되어 있고 공통 migration ledger가 없어, 처음부터 다시 실행하면 이미 존재하는 객체에서 실패할 수 있습니다.
+```bash
+dc run --rm --no-deps -v /home/ubuntu/seoul-wave-data:/source:ro backend python scripts/import_place_catalog.py --source /source/seoul_places.sqlite3 --dry-run
+dc run --rm --no-deps -v /home/ubuntu/seoul-wave-data:/source:ro backend python scripts/import_place_catalog.py --source /source/seoul_places.sqlite3
+```
 
-운영 전에는 DB 이름·테이블·컬럼·인덱스와 백업 복구 가능성을 확인하고, 각 migration이 이미 적용됐는지 대조해야 합니다. 운영 데이터 백업, 스키마 차이 보고, 승인 없이 SQL을 실행하지 않습니다. 마이그레이션은 컨테이너 시작 시 자동 실행하지 않습니다.
+6. dc up -d backend frontend → dc up -d itinerary-worker database-health-monitor → dc up -d admin-api admin-frontend 순서로 실행한다. 각 단계에서 dc ps, docker stats --no-stream, free -h를 확인한다. available 300MiB 미만 또는 OOM이 있으면 다음 서비스를 올리지 않는다. t3.small 실측 부하는 아직 확인되지 않았다.
+7. 호스트 Nginx의 활성 설정을 백업하고 nginx-ec2.conf.example의 location을 기존 server block에 반영한다. sudo nginx -t 통과 후 승인받은 reload를 한다. 기존 Nginx를 중지하거나 80을 다른 컨테이너에 넘기지 않는다.
+8. 외부 URL에서 사용자 로그인, 선착장·시간표·날짜 선택, 실제 LLM 추천, 재생성 횟수 제한, /admin/ 로그인과 실행 로그를 확인한다. /ready와 worker health는 실제 LLM 추천 성공을 보장하지 않는다.
 
-## 승인 후 배포 절차
+## 데이터 보호와 롤백
 
-이 절차는 실행 안내입니다. 현재 EC2의 기존 서비스 영향과 볼륨을 확인하고 사용자가 승인하기 전에는 실행하지 않습니다.
+현재 호스트에는 보존해야 하는 PostgreSQL 및 monitor-state 볼륨이 있다. 자동 배포는 DB schema나 데이터를 변경하지 않으며, 변경 전 앱 이미지 identity를 기록하고 앱 서비스만 복구한다. DB 백업·복원, migration, 장소 데이터 적재는 별도 승인 절차다. `down -v`, `volume rm`, `system prune`, 테이블 초기화는 사용하지 않는다.
 
-1. Instance Profile Role과 Backend ECR 조회는 이미 확인했습니다. 인스턴스/역할이 달라진 경우만 재확인하고 long-lived Access Key는 만들지 않습니다.
-2. 배포 직전에 컨테이너·볼륨·포트·Nginx·메모리를 다시 기록합니다. 현재 스냅샷에는 컨테이너와 볼륨이 없지만, 상태가 바뀌었으면 계획을 다시 검토합니다.
-3. Backend와 Frontend 모두 정확한 SHA 태그를 선택합니다. 현재 키 포함 Frontend SHA는 표의 값입니다.
-4. `.env.prod.example`을 EC2 `.env.prod`로 복사하고 신규 DB 이름·사용자·강한 비밀번호 및 애플리케이션 secrets를 채웁니다. `FRONTEND_IMAGE`를 key-enabled SHA로 바꾸고 모든 placeholder를 제거합니다. 파일은 사용자만 읽을 수 있게 보호합니다.
-5. 도메인과 TLS 방침을 정합니다. `SESSION_COOKIE_SECURE=true` 상태에서는 HTTP 로그인 세션이 유지되지 않으므로 TLS를 준비하거나, 별도 승인된 HTTP 시연 정책이 있어야 합니다.
-6. Compose가 참조하는 이미지 URI, 환경변수 이름, named volume `seoul-wave-prod-postgres-data`를 검토합니다. `docker compose -f compose.prod.yaml --env-file .env.prod config --quiet`로 문법만 검증하며 펼쳐진 전체 config는 출력·공유하지 않습니다.
-7. 승인된 이미지 SHA를 `docker compose ... pull`로 가져옵니다.
-8. 신규 PostgreSQL volume이 생성되고 빈 DB가 초기화됨을 확인합니다. DB 시작과 schema/data 초기화는 운영 상태 변경이므로 별도 승인받습니다. migration 및 seed는 시작 시 자동으로 실행되지 않습니다.
-9. 서비스 시작 승인 후 `up -d db` → 메모리·DB 로그 확인 → `up -d backend frontend` → readiness·메모리 확인 → `up -d itinerary-worker` → 재확인 순서로 진행합니다. available이 300 MiB 아래로 내려가거나 OOM 재시작이 보이면 다음 단계로 가지 않습니다.
-10. 기존 Nginx server block을 백업하고 [예시 설정](nginx-ec2.conf.example)처럼 모든 경로를 `127.0.0.1:8080`으로 전달합니다. frontend 컨테이너 Nginx가 `/api/health`와 `/api/`를 Docker 내부 backend로 분기합니다. `sudo nginx -t` 통과 및 변경 승인을 받은 뒤에만 reload합니다. 그 다음 loopback 경로, 외부 URL, HTTPS·로그인·실제 API를 확인합니다. `/ready`만으로 전체 기능 성공을 주장하지 않습니다.
+## 검증 증빙
 
-위 명령은 EC2 운영 변경입니다. 이 문서 작성/검증 단계에서는 실행하지 않았습니다.
+## 2026-11-08 실제 배포 검증 상태
 
-## 롤백
+PR #15가 squash merge되어 `dev`의 `2e0fad0931215787a4afd69faeee21c3618d31f2`에 반영되었다. CI run `42430497063`은 테스트·배포 gate·이미지 게시에 성공했고 검증 릴리스 Artifact를 만들었다. 첫 CD 시도는 GitHub OIDC subject 형식 불일치로 AWS 인증에서 멈춰 SSM 명령을 보내지 않았다. CloudTrail에서 확인한 불변 owner/repository ID를 포함한 정확한 `dev` subject로 IAM trust를 수정했다.
 
-배포 전 사용 중인 Backend·Frontend SHA와 컨테이너 상태를 기록합니다. 문제가 생기면 `.env.prod`의 Backend·Frontend 이미지 태그만 이전에 검증된 SHA로 되돌리고, 검토·승인 뒤 Compose에서 애플리케이션 서비스만 다시 생성합니다. **DB 볼륨이나 데이터는 롤백 과정에서 삭제·초기화하지 않습니다.** 스키마를 이미 바꿨다면 이미지 롤백만으로 충분하지 않을 수 있으므로 별도 복구 계획이 필요합니다.
+PR #15의 첫 실제 SSM 시도(`42430732165`, command `37587b0d-4449-4341-b283-4a286ad4d621`)는 호스트에서 `config_id_mismatch`를 감지해 자동 롤백했다. SSM 결과는 `rolled_back`이며 rollback 검증과 proxy health·protected API·login·timetable 검사가 모두 통과했다. 이 시도는 성공 배포가 아니었다.
 
-`docker compose down -v`, `docker volume rm`, `docker system prune`, DB 초기화 SQL은 사용하지 않습니다.
+PR #16은 `8ed75892336d2b30b408a4aeed82b4e96570536c`로 squash merge되었다. 검증 pipeline run `42433516487`은 백엔드·프론트엔드·통합 테스트, gate 및 이미지 게시에 성공했고, `verified-release` artifact를 배포 run `42433731035`가 사용했다. OIDC 인증과 고정 SSM 문서 전송도 성공했다. command `90f0ab47-8bcc-4f32-b774-46e6713b9a7e`의 최종 `runFixedDeployment` 상태는 `Success`, 응답 코드는 0, 원격 결과는 `outcome=applied`였다. 결과의 source SHA는 `8ed75892336d2b30b408a4aeed82b4e96570536c`, release run ID는 `42433516487`이며 backend/frontend config ID 확인, migration dry-run `none`, proxy health·protected API·login·timetable 점검이 모두 통과했다. 외부 공개 `/` 및 `/api/health`도 각각 HTTP 200(`health=ok`)이었다.
 
-## 현재 미확인 및 결정 대기
-
-- 서비스 도메인과 HTTPS/TLS 종단점, 이에 따른 Secure 쿠키 설정
-- 신규 empty PostgreSQL의 초기 schema와 승인된 데이터 적재 방법
-- DB 백업·복구 절차와 운영 migration 이력
-- 실제 구동 후 memory high-water와 적정 swap/인스턴스 크기 (현재 스냅샷: 약 1.9 GiB RAM, 1.4 GiB available, swap 없음)
-
-인스턴스·IAM·Backend ECR 조회는 이미 확인되어 재설정 작업에서 제외했습니다. 남은 항목과 배포 SHA·DB 초기화 영향·중단 시간·TLS 방침을 검토한 뒤, 실제 운영 배포 및 migration에 대한 별도 승인을 받습니다.
+단, GitHub CD run `42433731035` 자체는 `ssm_poll_failed`로 종료되었다. CloudTrail에서 확인한 첫 `GetCommandInvocation` 호출은 SSM이 아직 `runFixedDeployment` plugin을 등록하기 전이라 `InvalidPluginName`을 반환했다. 당시 poller가 이 일시적 응답을 재시도 가능한 상태로 분류하지 않아 workflow가 먼저 실패했지만, 이미 접수된 SSM 명령은 계속 실행되어 위와 같이 실제 배포와 원격 검증을 완료했다. 따라서 운영 배포는 성공했으나 그 CD run의 GitHub 상태는 실패로 남았다. follow-up PR은 이 오류를 재시도하고, 선행 단계가 실제 진행 중이지 않은 상태에서 고정 invocation들이 120초간 계속 조회되지 않으면 안전한 실패 코드로 종료하도록 bounded retry와 회귀 테스트를 추가한다. 성공 화면 GIF는 workflow도 성공한 후 실제 브라우저 화면으로 검증해 README에 추가한다.

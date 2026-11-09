@@ -34,7 +34,7 @@ services:
       APP_ENV: ${APP_ENV:?Set APP_ENV=production in .env.prod}
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env.prod}
       SITE_ACCESS_PASSWORDS: ${SITE_ACCESS_PASSWORDS:?Set SITE_ACCESS_PASSWORDS in .env.prod}
-      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:?Set SESSION_COOKIE_SECURE=true in .env.prod}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:?Set SESSION_COOKIE_SECURE in .env.prod}
       SEOUL_CULTURE_API_KEY: ${SEOUL_CULTURE_API_KEY:?Set SEOUL_CULTURE_API_KEY in .env.prod}
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in .env.prod}
       OPENAI_MODEL: ${OPENAI_MODEL:?Set OPENAI_MODEL in .env.prod}
@@ -78,6 +78,32 @@ services:
     networks:
       - application
       - database
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+  database-health-monitor:
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE}
+    command: ["python", "-m", "app.database_health_monitor"]
+    restart: unless-stopped
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: ${POSTGRES_DB:?Set POSTGRES_DB}
+      DATABASE_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      DATABASE_MONITOR_SPOOL_PATH: /var/lib/seoul-wave-health-monitor/monitor.sqlite3
+    volumes:
+      - database_health_monitor_state:/var/lib/seoul-wave-health-monitor
+    networks:
+      - database
+    depends_on:
+      db:
+        condition: service_started
+
   frontend:
     image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE to an exact SHA-tagged ECR image in .env.prod}
     restart: unless-stopped
@@ -103,5 +129,7 @@ networks:
     internal: true
 
 volumes:
+  database_health_monitor_state:
+    name: seoul-wave-prod-monitor-state
   postgres_data:
     name: seoul-wave-prod-postgres-data
