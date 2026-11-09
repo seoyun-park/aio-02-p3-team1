@@ -1,0 +1,52 @@
+flowchart TD
+    Request["추천 요청 / worker 작업 시작"] --> InputCheck["입력 검증<br/>validate_agent_inputs"]
+    InputCheck --> CreateRun["agent_runs 생성<br/>run_id 발급"]
+    CreateRun --> BuildGraph["LangGraph 구성<br/>build_itinerary_graph"]
+
+    BuildGraph -->|구성 성공| Trip["trip_mobility_agent<br/>MovementReview 생성"]
+    BuildGraph -->|RuntimeError · FT-02 시험| BuildError["LangGraph 구성 실패<br/>LANGGRAPH_EXECUTION_FAILED"]
+    BuildError --> Failed["agent_runs = FAILED<br/>incident 기록"]
+
+    Trip -->|정상 구조화 응답| Explain["event_explanation_agent<br/>후보별 추천 이유 생성"]
+    Explain -->|정상 구조화 응답| Critic["schedule_critic_agent<br/>일정·날짜·도착지 검수"]
+    Critic --> Decision{"Critic 결정 및 수정 횟수"}
+    Decision -->|REVISE, 최대 1회 이내| Explain
+    Decision -->|PASS / REJECT / 수정 한도 도달| Validator["result_validator<br/>ID·근거·추천 결과 검증"]
+    Validator -->|검증 완료| Completed["agent_runs = SUCCESS<br/>eligible_candidates / no_match / safe_stopped"]
+    Validator -->|예외 · RESULT_VALIDATION_FAILED| Failed
+
+    subgraph InNode["각 LLM 노드 내부의 call_agent 처리 — 별도 LangGraph 노드가 아님"]
+        FormatCheck{"응답 파싱 및 Pydantic 스키마 검증"}
+        FormatCheck -->|응답 유효| Accepted["현재 agent 노드 출력 확정"]
+        FormatCheck -->|형식 오류 · FT-04| FormatRetry["형식 수정 요청 최대 1회<br/>LLM_OUTPUT_INVALID incident<br/>repair_llm_structured_output recovery"]
+        FormatRetry -->|수정 응답 재검사| FormatCheck
+        FormatRetry -->|재시도도 형식 오류| FormatFailed["현재 step FAILED<br/>LLM_OUTPUT_INVALID<br/>recovery FAILED"]
+        FormatCheck -->|일시 API 오류 · FT-01| TransientRetry["일시 오류 제한 재시도 최대 2회<br/>retry_transient_llm_call"]
+        TransientRetry -->|재호출 후 응답 검사| FormatCheck
+        TransientRetry -->|재시도 소진| LLMFailed["현재 step FAILED<br/>LLM_AGENT_CALL_FAILED"]
+    end
+
+    Trip -. "LLM 호출 결과는 call_agent 내부 검사" .-> FormatCheck
+    Explain -. "LLM 호출 결과는 call_agent 내부 검사" .-> FormatCheck
+    Critic -. "LLM 호출 결과는 call_agent 내부 검사" .-> FormatCheck
+    FormatFailed --> Failed
+    LLMFailed --> Failed
+
+    subgraph Database["공통 PostgreSQL 및 감시기 — LangGraph 바깥의 인프라"]
+        DB[("PostgreSQL<br/>agent_runs / step / API / incident / recovery logs")]
+        Monitor["database-health-monitor<br/>연결 감지 및 spool"]
+        DBFault["DB 연결 중단 · FT-03 시험<br/>감시·로그 저장 자동<br/>DB 컨테이너 재시작은 수동"]
+        DBFault --> Monitor
+        Monitor -. "연결 복구 후 로그 반영" .-> DB
+    end
+
+    CreateRun -. "run_id 및 실행 로그" .-> DB
+    Trip -. "step / API / incident / recovery logs" .-> DB
+    Explain -. "step / API / handoff logs" .-> DB
+    Critic -. "step / API / handoff logs" .-> DB
+    Validator -. "step log" .-> DB
+
+    classDef fault fill:#fff1f0,stroke:#cf1322,color:#7f1d1d;
+    classDef success fill:#f0fdf4,stroke:#15803d,color:#14532d;
+    class BuildError,Failed,FormatFailed,LLMFailed,DBFault fault;
+    class Completed,Accepted success;

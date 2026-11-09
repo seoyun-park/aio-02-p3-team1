@@ -1,0 +1,271 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024" role="img" aria-labelledby="title desc">
+  <title id="title">한강버스 AI 나들이 플래너 와이어프레임</title>
+  <desc id="desc">왼쪽 조건 입력 패널과 오른쪽 추천 코스, 지도, 일정 타임라인으로 구성된 데스크톱 화면 와이어프레임입니다.</desc>
+  <defs>
+    <linearGradient id="page" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f5f6ff"/><stop offset="1" stop-color="#e9edff"/>
+    </linearGradient>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8f8ff"/><stop offset="1" stop-color="#e4e8ff"/>
+    </linearGradient>
+    <linearGradient id="primary" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5147ed"/><stop offset="1" stop-color="#6656f4"/>
+    </linearGradient>
+    <linearGradient id="river" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d6ecf3"/><stop offset="1" stop-color="#b6dce9"/>
+    </linearGradient>
+    <linearGradient id="photo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c6d7d8"/><stop offset=".52" stop-color="#a7c1c9"/><stop offset="1" stop-color="#d9dfd6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#3d4b9a" flood-opacity=".10"/>
+    </filter>
+    <style>
+      text { font-family: "Noto Sans KR", "Malgun Gothic", sans-serif; fill: #121b3b; }
+      .muted { fill: #667394; }
+      .violet { fill: #5147ed; }
+      .small { font-size: 12px; }
+      .label { font-size: 15px; font-weight: 700; }
+      .body { font-size: 14px; }
+      .panel { fill: #fff; stroke: #dfe4f7; stroke-width: 1.4; }
+      .field { fill: #fff; stroke: #d9def0; stroke-width: 1.5; }
+      .soft { fill: #f5f6ff; stroke: #e5e8fa; stroke-width: 1; }
+      .line { stroke: #e4e8f4; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect width="1536" height="1024" fill="url(#page)"/>
+
+  <!-- Left: introduction and request form -->
+  <g filter="url(#shadow)">
+    <rect x="34" y="42" width="540" height="956" rx="30" class="panel"/>
+    <path d="M64 42h480a30 30 0 0 1 30 30v192H34V72a30 30 0 0 1 30-30z" fill="url(#hero)"/>
+  </g>
+  <!-- Boat mark -->
+  <g transform="translate(263 65)" fill="none" stroke="#4f46dc" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 22h58l-7 17H23z" fill="#fff"/>
+    <path d="M30 22V8h22v14M37 8V2h8v6M16 45c8-5 14 5 22 0s14 5 22 0 12 4 18 0"/>
+    <circle cx="36" cy="15" r="2" fill="#4f46dc"/><circle cx="48" cy="15" r="2" fill="#4f46dc"/>
+  </g>
+  <g fill="none" stroke="#c3cafa" stroke-width="4" stroke-linecap="round" opacity=".8">
+    <path d="M456 83l18-7 15 7 15-7 18 8"/><path d="M472 103l15-7 15 8 16-7 13 5"/>
+  </g>
+  <text x="304" y="156" text-anchor="middle" font-size="28" font-weight="800">한강버스 AI 나들이 플래너</text>
+  <text x="304" y="187" text-anchor="middle" font-size="15" class="muted">한강버스를 타고, 문화행사부터 나들이 코스까지</text>
+  <text x="304" y="211" text-anchor="middle" font-size="15" class="muted">AI가 한 번에 추천해드려요!</text>
+  <!-- Abstract skyline and bridge -->
+  <g fill="#cbd2f5" opacity=".54">
+    <path d="M34 238h18v-24h11v24h10v-37h15v37h8v-17h15v17h11v-30h18v30h13v-19h12v19h12v-40h18v40h13v-25h15v25h15v-32h14v32h16v-22h15v22h15v-38h16v38h14v-17h12v17h20v-26h15v26h17v-18h12v18h15v-37h15v37h16v-22h12v22h16v-30h15v30h16v-18h14v18h18v-12h14v12h16v-24h15v24h16v-16h13v16h22v20H34z"/>
+  </g>
+  <path d="M34 247c95-19 172-23 269-13 82 8 169 0 271-30" fill="none" stroke="#b9c3f1" stroke-width="5" opacity=".8"/>
+  <path d="M430 229l32-13 34 13M464 216v31M510 205v39" fill="none" stroke="#b9c3f1" stroke-width="3" opacity=".8"/>
+
+  <!-- Form card -->
+  <path d="M34 290a30 30 0 0 1 30-30h480a30 30 0 0 1 30 30v678a30 30 0 0 1-30 30H64a30 30 0 0 1-30-30z" fill="#fff"/>
+  <circle cx="82" cy="322" r="22" fill="#f0f1ff"/>
+  <path d="M82 307l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="#584cf1"/>
+  <text x="114" y="332" font-size="24" font-weight="800">나만의 한강 나들이 만들기</text>
+
+  <g transform="translate(63 368)" fill="none" stroke="#5552d8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 13h26l-4 8H6zM7 13V6h12v7M10 6V3h6v3M2 25c5-3 9 3 14 0s9 3 14 0"/>
+  </g>
+  <text x="102" y="390" class="label">출발 선착장</text>
+  <rect x="61" y="408" width="154" height="60" rx="16" class="field"/>
+  <circle cx="86" cy="438" r="10" fill="#fff" stroke="#c5cde2" stroke-width="2"/>
+  <text x="106" y="444" font-size="16" font-weight="600">여의도</text>
+  <rect x="226" y="408" width="153" height="60" rx="16" fill="#f2f1ff" stroke="#6359f2" stroke-width="1.8"/>
+  <circle cx="251" cy="438" r="10" fill="#574cf0"/><circle cx="251" cy="438" r="3.5" fill="#fff"/>
+  <text x="271" y="444" font-size="16" font-weight="700" class="violet">망원</text>
+  <rect x="390" y="408" width="157" height="60" rx="16" class="field"/>
+  <circle cx="415" cy="438" r="10" fill="#fff" stroke="#c5cde2" stroke-width="2"/>
+  <text x="435" y="444" font-size="16" font-weight="600">잠실</text>
+
+  <g transform="translate(63 499)" fill="none" stroke="#5753db" stroke-width="2.3" stroke-linecap="round">
+    <circle cx="12" cy="12" r="10"/><path d="M12 6v7l5 3"/>
+  </g>
+  <text x="102" y="522" class="label">출발 희망 시각</text>
+  <g transform="translate(322 499)" fill="none" stroke="#5753db" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 2h13l-4 9 4 12H8l4-12zM10 5h9"/>
+  </g>
+  <text x="354" y="522" class="label">여행 가능 시간</text>
+  <rect x="61" y="538" width="235" height="56" rx="14" class="field"/>
+  <text x="80" y="573" font-size="17" font-weight="600">14:00</text>
+  <path d="M268 560l8 8 8-8" fill="none" stroke="#455275" stroke-width="2.3"/>
+  <rect x="321" y="538" width="226" height="56" rx="14" class="field"/>
+  <text x="340" y="573" font-size="17" font-weight="600">4시간</text>
+  <path d="M518 560l8 8 8-8" fill="none" stroke="#455275" stroke-width="2.3"/>
+
+  <g transform="translate(62 622)" fill="none" stroke="#5753db" stroke-width="2.1" stroke-linecap="round">
+    <circle cx="10" cy="8" r="5"/><path d="M1 24c0-6 4-9 9-9s9 3 9 9M22 7c4 0 6 3 6 6s-2 5-6 5M23 19c4 0 6 2 7 5"/>
+  </g>
+  <text x="102" y="644" class="label">누구와 함께?</text>
+  <g transform="translate(321 621)" fill="none" stroke="#5753db" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 6h25v17H3zM8 2v8M23 2v8M3 12h25M11 17h9"/>
+  </g>
+  <text x="358" y="644" class="label">선호하는 활동</text>
+  <rect x="61" y="660" width="235" height="56" rx="14" class="field"/>
+  <text x="80" y="695" font-size="16" font-weight="600">가족</text>
+  <path d="M268 682l8 8 8-8" fill="none" stroke="#455275" stroke-width="2.3"/>
+  <rect x="321" y="660" width="226" height="56" rx="14" class="field"/>
+  <text x="340" y="695" font-size="16" font-weight="600">전시 · 공연</text>
+  <path d="M518 682l8 8 8-8" fill="none" stroke="#455275" stroke-width="2.3"/>
+
+  <rect x="56" y="747" width="497" height="124" rx="20" fill="#f2f2ff" stroke="#e8e9ff"/>
+  <circle cx="84" cy="780" r="13" fill="none" stroke="#5349ee" stroke-width="2"/>
+  <text x="84" y="786" text-anchor="middle" font-size="15" font-weight="800" class="violet">i</text>
+  <text x="111" y="786" font-size="17" font-weight="800" class="violet">이렇게 추천해드려요!</text>
+  <text x="83" y="818" font-size="14">한강버스 운항 시간, 문화행사 일정, 이동 동선을 고려해</text>
+  <text x="83" y="843" font-size="14">지금 가장 즐기기 좋은 나들이 코스를 AI가 만들어드려요.</text>
+  <rect x="56" y="897" width="497" height="67" rx="18" fill="url(#primary)"/>
+  <path d="M151 931l5-10 5 10 10 5-10 4-5 10-5-10-10-4z" fill="#fff"/>
+  <text x="303" y="941" text-anchor="middle" font-size="18" font-weight="800" fill="#fff">내 조건으로 AI 코스 만들기</text>
+  <path d="M493 930h22m-8-8 8 8-8 8" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right: recommendations -->
+  <g filter="url(#shadow)"><rect x="594" y="42" width="908" height="956" rx="30" class="panel"/></g>
+  <g transform="translate(622 66) scale(.65)" fill="none" stroke="#4f46dc" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 22h58l-7 17H23z" fill="#fff"/><path d="M30 22V8h22v14M37 8V2h8v6M16 45c8-5 14 5 22 0s14 5 22 0 12 4 18 0"/>
+  </g>
+  <text x="689" y="91" font-size="23" font-weight="800">한강버스 AI 나들이 플래너</text>
+  <circle cx="640" cy="145" r="18" fill="#f0f1ff"/>
+  <path d="M640 132l4 9 9 4-9 4-4 9-4-9-9-4 9-4z" fill="#584cf1"/>
+  <text x="670" y="154" font-size="25" font-weight="800">AI 추천 코스 결과</text>
+  <text x="622" y="190" font-size="17">망원에서 출발해 가족과 함께 전시 · 공연을 즐기는 4시간 나들이 코스예요.</text>
+  <rect x="1269" y="125" width="215" height="41" rx="21" fill="#f2f1ff" stroke="#c7c9ff" stroke-width="1.5"/>
+  <text x="1376" y="151" text-anchor="middle" font-size="14" font-weight="700" class="violet">가족 · 전시·공연 · 4시간</text>
+  <rect x="618" y="210" width="870" height="42" rx="17" fill="#f3f4ff"/>
+  <circle cx="638" cy="231" r="8" fill="none" stroke="#4e53c9" stroke-width="1.8"/>
+  <text x="638" y="235" text-anchor="middle" font-size="10" font-weight="800" class="violet">i</text>
+  <text x="655" y="237" font-size="14" fill="#2b3b72">아래 일정은 예시이며, 실제 운항 시간과 행사 일정은 별도 확인이 필요합니다.</text>
+
+  <!-- Course tabs -->
+  <rect x="618" y="270" width="430" height="55" rx="15" fill="url(#primary)"/>
+  <rect x="705" y="282" width="108" height="29" rx="15" fill="#3d35d2" opacity=".65"/>
+  <text x="759" y="302" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">추천 코스 1</text>
+  <text x="829" y="304" font-size="16" font-weight="700" fill="#fff">여의도 문화 나들이</text>
+  <rect x="1058" y="270" width="430" height="55" rx="15" fill="#fff" stroke="#d8ddf1" stroke-width="1.5"/>
+  <rect x="1149" y="282" width="108" height="29" rx="15" fill="#f1f2ff"/>
+  <text x="1203" y="302" text-anchor="middle" font-size="13" font-weight="700" fill="#4c52b6">추천 코스 2</text>
+  <text x="1273" y="304" font-size="16" font-weight="700">망원 전시 체험</text>
+
+  <!-- Main result card -->
+  <rect x="618" y="342" width="560" height="229" rx="19" fill="#fff" stroke="#e2e6f4"/>
+  <clipPath id="photoClip"><rect x="628" y="352" width="540" height="209" rx="15"/></clipPath>
+  <g clip-path="url(#photoClip)">
+    <rect x="628" y="352" width="540" height="209" fill="url(#photo)"/>
+    <circle cx="1042" cy="391" r="37" fill="#f9edc9" opacity=".9"/>
+    <path d="M628 468c70-23 120-15 180 4s123 20 189-3 115-32 171-4v96H628z" fill="#8bb2b5" opacity=".7"/>
+    <path d="M628 494c106-11 200 5 280 7 98 2 173-22 260-13v73H628z" fill="#9abcae"/>
+    <path d="M628 512c105-7 183 5 278 3 92-2 166-11 262-5v51H628z" fill="#769fa2" opacity=".72"/>
+    <!-- skyline -->
+    <g fill="#718894" opacity=".72">
+      <path d="M724 443h24v-44h24v44h13v-69h29v69h20v-31h19v31h20v-83h29v83h22v-50h23v50h19v-69h34v69h16v-39h27v39h19v-88h28v88h19v-49h26v49h26v-64h31v64h21v-37h22v37h28v-50h24v50h24v-32h20v32z"/>
+    </g>
+    <!-- park trees and people silhouettes -->
+    <g fill="#557b70" opacity=".75">
+      <circle cx="676" cy="430" r="25"/><rect x="672" y="430" width="8" height="40"/>
+      <circle cx="697" cy="439" r="20"/><rect x="694" y="440" width="7" height="32"/>
+      <circle cx="1130" cy="433" r="24"/><rect x="1126" y="433" width="8" height="35"/>
+    </g>
+    <g fill="#26364c" opacity=".8">
+      <circle cx="797" cy="490" r="4"/><path d="M794 495h6v20h-6zM798 499l11 8-2 3-11-7z"/>
+      <circle cx="849" cy="502" r="4"/><path d="M846 507h6v18h-6z"/>
+      <circle cx="1065" cy="493" r="4"/><path d="M1062 498h6v19h-6zM1063 503l-10 8 2 3 10-7z"/>
+    </g>
+    <rect x="628" y="485" width="540" height="76" fill="#15213b" opacity=".66"/>
+    <text x="650" y="520" font-size="24" font-weight="800" fill="#fff">망원 → 여의도</text>
+    <text x="650" y="545" font-size="14" fill="#fff">한강버스 탑승 + 문화공간 방문 + 가족 산책</text>
+  </g>
+  <rect x="1034" y="363" width="118" height="38" rx="19" fill="#d8ffec" stroke="#8ce0ba"/>
+  <path d="M1051 380l5-9 5 9h-10zM1053 381h6v7h-6z" fill="none" stroke="#227e62" stroke-width="1.5" stroke-linejoin="round"/>
+  <text x="1110" y="388" text-anchor="middle" font-size="13" font-weight="700" fill="#17644e">추천 1순위</text>
+
+  <!-- Timeline -->
+  <rect x="618" y="585" width="560" height="377" rx="19" fill="#fcfcff" stroke="#e5e8f5"/>
+  <text x="642" y="617" font-size="17" font-weight="800">4시간 일정 시뮬레이션 (예시)</text>
+  <path d="M650 656v265" stroke="#8884f7" stroke-width="3"/>
+  <g fill="#625bf2">
+    <circle cx="650" cy="665" r="7"/><circle cx="650" cy="720" r="7"/><circle cx="650" cy="778" r="7"/><circle cx="650" cy="836" r="7"/><circle cx="650" cy="894" r="7"/>
+  </g>
+  <g>
+    <rect x="674" y="642" width="484" height="47" rx="14" fill="#fff"/>
+    <text x="690" y="671" font-size="15" font-weight="700" fill="#35479a">14:00</text>
+    <text x="816" y="663" font-size="14" font-weight="700">망원 선착장</text>
+    <text x="816" y="681" font-size="11" class="muted">탑승 수속 및 한강버스 대기</text>
+    <rect x="1084" y="651" width="59" height="27" rx="14" fill="#f1f2ff"/><text x="1113" y="669" text-anchor="middle" font-size="11" class="violet">출발 준비</text>
+
+    <rect x="674" y="697" width="484" height="48" rx="14" fill="#fff"/>
+    <text x="690" y="727" font-size="15" font-weight="700" fill="#35479a">14:30 ~ 15:00</text>
+    <text x="816" y="718" font-size="14" font-weight="700">여의도 도착 (가정)</text>
+    <text x="816" y="737" font-size="11" class="muted">한강 풍경 감상 후 하선 · 실제 도착 시각은 확인 필요</text>
+    <rect x="1084" y="708" width="59" height="27" rx="14" fill="#f1f2ff"/><text x="1113" y="726" text-anchor="middle" font-size="11" class="violet">이동</text>
+
+    <rect x="674" y="754" width="484" height="48" rx="14" fill="#fff"/>
+    <text x="690" y="784" font-size="15" font-weight="700" fill="#35479a">15:00 ~ 16:30</text>
+    <text x="816" y="775" font-size="14" font-weight="700">가족 문화활동</text>
+    <text x="816" y="794" font-size="11" class="muted">여의도 주변 전시 · 공연 관람 (예시) · 참여 가능 여부 확인 필요</text>
+    <rect x="1084" y="765" width="59" height="27" rx="14" fill="#f1f2ff"/><text x="1113" y="783" text-anchor="middle" font-size="11" class="violet">전시·공연</text>
+
+    <rect x="674" y="812" width="484" height="48" rx="14" fill="#fff"/>
+    <text x="690" y="842" font-size="15" font-weight="700" fill="#35479a">16:30 ~ 17:30</text>
+    <text x="816" y="833" font-size="14" font-weight="700">여의도한강공원 산책</text>
+    <text x="816" y="852" font-size="11" class="muted">가족 사진 촬영과 휴식</text>
+    <rect x="1084" y="823" width="59" height="27" rx="14" fill="#f1f2ff"/><text x="1113" y="841" text-anchor="middle" font-size="11" class="violet">산책·휴식</text>
+
+    <rect x="674" y="870" width="484" height="48" rx="14" fill="#fff"/>
+    <text x="690" y="900" font-size="15" font-weight="700" fill="#35479a">17:30 ~ 18:00</text>
+    <text x="816" y="891" font-size="14" font-weight="700">귀가 준비</text>
+    <text x="816" y="910" font-size="11" class="muted">지하철 또는 한강버스 귀가편 확인</text>
+    <rect x="1084" y="881" width="59" height="27" rx="14" fill="#f1f2ff"/><text x="1113" y="899" text-anchor="middle" font-size="11" class="violet">귀가</text>
+  </g>
+
+  <!-- Map card -->
+  <rect x="1194" y="342" width="294" height="286" rx="19" fill="#fff" stroke="#e2e6f4"/>
+  <circle cx="1221" cy="370" r="10" fill="#ecebff"/><path d="M1221 363l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#5449ee"/>
+  <text x="1240" y="376" font-size="15" font-weight="700">추천 코스 지도 (예시)</text>
+  <clipPath id="mapClip"><rect x="1205" y="394" width="272" height="217" rx="14"/></clipPath>
+  <g clip-path="url(#mapClip)">
+    <rect x="1205" y="394" width="272" height="217" fill="#eef1e9"/>
+    <path d="M1188 420l80 70-30 60 91 72M1240 372l28 66 70 24 44-48M1186 550l67-14 46-54 79 22M1325 623l9-91 80-53M1206 459l47-3 37 45-14 38-70-7" fill="none" stroke="#d2d9c9" stroke-width="8"/>
+    <path d="M1185 480c47-25 84 2 122 15 48 17 87-13 166-2v50c-67-14-103 20-157 3-47-15-75-37-131-8z" fill="url(#river)"/>
+    <path d="M1224 455c38 14 57 32 87 40s69 8 118-6" fill="none" stroke="#6158f2" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="1225" cy="455" r="8" fill="#5049ed"/><path d="M1225 466l-8 14h16z" fill="#5049ed"/>
+    <circle cx="1426" cy="489" r="8" fill="#5049ed"/><path d="M1426 500l-8 14h16z" fill="#5049ed"/>
+    <rect x="1215" y="420" width="94" height="41" rx="17" fill="#fff" stroke="#e5e8ef"/>
+    <text x="1262" y="438" text-anchor="middle" font-size="11" font-weight="700">망원 선착장</text>
+    <text x="1262" y="453" text-anchor="middle" font-size="10" class="muted">(출발)</text>
+    <rect x="1360" y="488" width="106" height="43" rx="17" fill="#fff" stroke="#e5e8ef"/>
+    <text x="1413" y="506" text-anchor="middle" font-size="11" font-weight="700">여의도 선착장</text>
+    <text x="1413" y="521" text-anchor="middle" font-size="10" class="muted">(도착)</text>
+    <g transform="translate(1317 466)" fill="none" stroke="#4845da" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M0 8h31l-4 9H5zM8 8V2h13v6M1 21c5-3 8 3 13 0s8 3 13 0" fill="#fff"/>
+    </g>
+  </g>
+
+  <!-- Course details -->
+  <rect x="1194" y="646" width="294" height="316" rx="19" fill="#fff" stroke="#e2e6f4"/>
+  <circle cx="1221" cy="675" r="10" fill="#ecebff"/><path d="M1221 668l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#5449ee"/>
+  <text x="1240" y="681" font-size="15" font-weight="700">코스 정보</text>
+  <path d="M1212 699h255" class="line"/>
+  <g transform="translate(1214 718)" fill="none" stroke="#5552d8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 9h25l-4 8H5zM7 9V3h12v6M2 21c5-3 9 3 14 0s9 3 14 0"/>
+  </g>
+  <text x="1255" y="730" font-size="12" font-weight="700">한강버스 탑승</text>
+  <text x="1255" y="750" font-size="11" class="muted">포함 (실제 운항 시간 확인 필요)</text>
+  <g transform="translate(1214 775)" fill="none" stroke="#5552d8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 4h23v17H3zM9 8h11M9 13h11M9 17h7"/><path d="M0 8l3 2M29 8l-3 2"/>
+  </g>
+  <text x="1255" y="787" font-size="12" font-weight="700">전시 · 공연</text>
+  <text x="1255" y="807" font-size="11" class="muted">여의도 주변 행사 (예시)</text>
+  <text x="1255" y="823" font-size="10" class="muted">행사 일정 별도 확인 필요</text>
+  <g transform="translate(1214 841)" fill="none" stroke="#5552d8" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="8" cy="7" r="4"/><path d="M1 22c0-5 3-9 7-9s7 4 7 9M19 7c3 0 5 2 5 5s-2 4-5 4M20 18c3 0 5 2 6 4"/>
+  </g>
+  <text x="1255" y="855" font-size="12" font-weight="700">추천 대상</text>
+  <text x="1255" y="875" font-size="11" class="muted">가족, 아이 동반 나들이</text>
+  <g transform="translate(1214 897)" fill="none" stroke="#5552d8" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/>
+  </g>
+  <text x="1255" y="910" font-size="12" font-weight="700">총 소요시간</text>
+  <text x="1255" y="931" font-size="11" class="muted">약 4시간 (14:00 ~ 18:00)</text>
+</svg>

@@ -1,0 +1,12 @@
+{
+  "all": true,
+  "src": ["src"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["src/**/*.d.ts", "src/api/types.ts", "src/pages/types.ts"],
+  "reporter": ["text", "json-summary", "lcov", "html"],
+  "check-coverage": true,
+  "lines": 70,
+  "statements": 70,
+  "functions": 70,
+  "branches": 60
+}

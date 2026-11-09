@@ -1,0 +1,1894 @@
+{
+  "report_version": "1.1.0",
+  "status": "passed_for_source_transcription_and_estimate_calculation",
+  "review_date": "2026-11-03",
+  "reviewed_by": "assistant_visual_review_with_windows_ocr_comparison",
+  "dataset_file": "timetable.json",
+  "dataset_sha256": "67a088e25d9197bf9ad50095580b3c3c2b739634e52472fd2240d35bf219b556",
+  "source_image_file": "source/timetable_source_20260815.jpg",
+  "source_image_sha256": "55346ad1b6761251cb475c33c9ca9dcdc29e42bfaae897bb454184c306320e82",
+  "source_page_url": "https://www.hgbus.co.kr/itc/information/schedule?menuId=5",
+  "source_image_url": "https://www.hgbus.co.kr/images/sub/information/schedule_img4_v260815.jpg",
+  "summary": {
+    "stops": 8,
+    "columns": 16,
+    "source_rows": 12,
+    "source_cells": 192,
+    "time_cells": 140,
+    "departure_time_cells": 120,
+    "arrival_time_cells": 20,
+    "blank_cells": 52,
+    "ocr_normalized_matches": 139,
+    "ocr_misreads_resolved_visually": 1,
+    "unresolved_transcription_discrepancies": 0,
+    "departure_records_with_arrival_estimates": 120,
+    "estimated_origin_destination_records": 300
+  },
+  "method": {
+    "transcription": "Assistant visually transcribed all sixteen columns from the downloaded original image, preserving twelve rows per column.",
+    "independent_check": "Windows.Media.Ocr (ko) recognized all 140 nonempty cells in a contrast-enhanced crop. Bounding boxes were mapped back to source columns and rows.",
+    "ocr_normalization": "Only punctuation removal and HH:mm colon insertion for exactly four recognized digits; no expected-value-based digit correction.",
+    "visual_review": "Original image, headings, blank layout, effective-date footnote and displayed diagram annotations were checked. One enhanced-OCR digit error was resolved against the source and original-size OCR.",
+    "reviewer_scope": "Assistant review; not a claim of team or operator approval.",
+    "arrival_estimation": {
+      "method": "origin_departure_plus_diagram_duration_sum",
+      "formula": "estimated_arrival = selected_origin_departure + sum(displayed_minutes for diagram spans between origin and destination)",
+      "decision_basis": "User-selected estimation method when same-trip linkage cannot be confirmed.",
+      "time_base": "Only the selected origin departure; intermediate-stop departure times are not joined or substituted.",
+      "dwell_and_wait_minutes_added": false,
+      "live_delay_adjustment": false,
+      "direction_rule": "Generate only destinations between the origin and the terminal named by its source departure heading.",
+      "transfers_included": false,
+      "reverse_direction_rule": "Reuse the same displayed minutes in both directions as a project estimation assumption, not a confirmed direction-specific duration.",
+      "diagram_span_is_stop_call_sequence": false,
+      "nonadjacent_duration_rule": "Sum intervening diagram labels even if a stop is bypassed; this is a nominal estimate, not a published duration for the bypass service.",
+      "direct_service_exclusions": [
+        [
+          "OKSU",
+          "APGUJEONG"
+        ],
+        [
+          "APGUJEONG",
+          "OKSU"
+        ]
+      ],
+      "stop_call_rule": "An estimate does not confirm a stop call for that departure. Calls at Oksu and Apgujeong require separate confirmation.",
+      "official_arrival_rule": "Explicit source arrival columns are preserved separately and never overwritten or paired with departures without confirmed trip linkage.",
+      "day_offset_rule": "arrival_day_offset is the number of local calendar days after the selected departure's date.",
+      "blank_cell_rule": "No arrival estimate is generated from an empty source departure cell."
+    }
+  },
+  "structural_checks": [
+    {
+      "name": "stop_count_and_unique_ids",
+      "status": "passed"
+    },
+    {
+      "name": "source_column_count",
+      "status": "passed"
+    },
+    {
+      "name": "unique_column_ids",
+      "status": "passed"
+    },
+    {
+      "name": "source_rows_preserved",
+      "status": "passed"
+    },
+    {
+      "name": "direction_ids_reference_known_stops",
+      "status": "passed"
+    },
+    {
+      "name": "time_format_and_range",
+      "status": "passed"
+    },
+    {
+      "name": "ascending_unique_times_per_column",
+      "status": "passed"
+    },
+    {
+      "name": "effective_date_is_iso_date",
+      "status": "passed"
+    },
+    {
+      "name": "explicit_arrival_headers_preserved",
+      "status": "passed"
+    },
+    {
+      "name": "unknown_calendar_and_trip_links_not_invented",
+      "status": "passed"
+    },
+    {
+      "name": "source_image_hash",
+      "status": "passed"
+    },
+    {
+      "name": "every_source_departure_estimated_once",
+      "status": "passed"
+    },
+    {
+      "name": "magok_1120_mangwon_1141_yeouido_1207",
+      "status": "passed"
+    },
+    {
+      "name": "no_transfer_beyond_source_direction_terminal",
+      "status": "passed"
+    },
+    {
+      "name": "no_oksu_apgujeong_direct_estimates",
+      "status": "passed"
+    },
+    {
+      "name": "arrival_estimates_marked_as_calculated",
+      "status": "passed"
+    },
+    {
+      "name": "midnight_rollover_retains_day_offset",
+      "status": "passed"
+    },
+    {
+      "name": "ocr_image_size",
+      "status": "passed"
+    },
+    {
+      "name": "source_cell_count",
+      "status": "passed"
+    },
+    {
+      "name": "nonempty_cells_detected_independently_by_ocr",
+      "status": "passed"
+    },
+    {
+      "name": "all_52_source_blanks_preserved",
+      "status": "passed"
+    },
+    {
+      "name": "all_times_compared_with_source",
+      "status": "passed"
+    },
+    {
+      "name": "saved_json_roundtrip",
+      "status": "passed"
+    }
+  ],
+  "column_summary": [
+    {
+      "stop_id": "MAGOK",
+      "stop_name": "마곡",
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_heading": "여의도행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "11:20",
+      "last_listed_time": "18:40"
+    },
+    {
+      "stop_id": "MAGOK",
+      "stop_name": "마곡",
+      "column_id": "MAGOK_ARRIVAL",
+      "source_heading": "도착",
+      "event_type": "arrival",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "12:53",
+      "last_listed_time": "21:39"
+    },
+    {
+      "stop_id": "MANGWON",
+      "stop_name": "망원",
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_heading": "여의도행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "11:42",
+      "last_listed_time": "19:02"
+    },
+    {
+      "stop_id": "MANGWON",
+      "stop_name": "망원",
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_heading": "마곡행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "12:34",
+      "last_listed_time": "21:18"
+    },
+    {
+      "stop_id": "YEOUIDO",
+      "stop_name": "여의도",
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_heading": "마곡행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "12:12",
+      "last_listed_time": "20:55"
+    },
+    {
+      "stop_id": "YEOUIDO",
+      "stop_name": "여의도",
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_heading": "잠실행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "12:38",
+      "last_listed_time": "20:05"
+    },
+    {
+      "stop_id": "APGUJEONG",
+      "stop_name": "압구정",
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_heading": "여의도행",
+      "event_type": "departure",
+      "time_count": 5,
+      "blank_count": 7,
+      "first_listed_time": "12:55",
+      "last_listed_time": "20:15"
+    },
+    {
+      "stop_id": "APGUJEONG",
+      "stop_name": "압구정",
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_heading": "잠실행",
+      "event_type": "departure",
+      "time_count": 5,
+      "blank_count": 7,
+      "first_listed_time": "14:07",
+      "last_listed_time": "20:37"
+    },
+    {
+      "stop_id": "OKSU",
+      "stop_name": "옥수",
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_heading": "여의도행",
+      "event_type": "departure",
+      "time_count": 5,
+      "blank_count": 7,
+      "first_listed_time": "11:52",
+      "last_listed_time": "19:42"
+    },
+    {
+      "stop_id": "OKSU",
+      "stop_name": "옥수",
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_heading": "잠실행",
+      "event_type": "departure",
+      "time_count": 5,
+      "blank_count": 7,
+      "first_listed_time": "13:13",
+      "last_listed_time": "19:40"
+    },
+    {
+      "stop_id": "SEOUL_FOREST",
+      "stop_name": "서울숲",
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_heading": "여의도행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "11:35",
+      "last_listed_time": "19:55"
+    },
+    {
+      "stop_id": "SEOUL_FOREST",
+      "stop_name": "서울숲",
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_heading": "잠실행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "13:31",
+      "last_listed_time": "20:58"
+    },
+    {
+      "stop_id": "TTUKSEOM",
+      "stop_name": "뚝섬",
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_heading": "여의도행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "11:17",
+      "last_listed_time": "19:37"
+    },
+    {
+      "stop_id": "TTUKSEOM",
+      "stop_name": "뚝섬",
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_heading": "잠실행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "13:49",
+      "last_listed_time": "21:16"
+    },
+    {
+      "stop_id": "JAMSIL",
+      "stop_name": "잠실",
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_heading": "여의도행",
+      "event_type": "departure",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "11:00",
+      "last_listed_time": "19:20"
+    },
+    {
+      "stop_id": "JAMSIL",
+      "stop_name": "잠실",
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_heading": "도착",
+      "event_type": "arrival",
+      "time_count": 10,
+      "blank_count": 2,
+      "first_listed_time": "14:03",
+      "last_listed_time": "21:30"
+    }
+  ],
+  "ocr_visual_resolutions": [
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 2,
+      "json_time": "13:53",
+      "ocr_raw": "13•33",
+      "ocr_normalized": "13:33",
+      "result": "visual_match_after_ocr_misread",
+      "review_note": "Original image visibly reads 13:53. Enhanced OCR misread the minute tens digit as 3 (13•33). Original-size OCR separately read 1353. JSON follows the image."
+    }
+  ],
+  "known_limits": [
+    "No operator trip IDs are published in this image. Same-row cells are not automatically linked as a trip.",
+    "Empty cells are preserved as null; no additional cancellation, skip-stop or service-calendar meaning is inferred.",
+    "Operating weekdays and holiday exceptions are not stated in the image and remain unspecified.",
+    "The displayed applicability is 2026-08-15 until further notice. Separate newer operational or cancellation notices have not been audited.",
+    "The general departure-time footnote is retained, while the two explicitly headed arrival columns are typed as arrivals.",
+    "Arrival estimates are origin departure plus summed diagram durations, as selected by the user. They omit dwell, waits and live delays and may differ from official arrival or intermediate departure times.",
+    "The same diagram durations are reused in reverse as an estimation assumption; direction-specific durations have not been confirmed.",
+    "Summed diagram spans are not stop-call sequences. Oksu and Apgujeong calls need confirmation; their direct pair is excluded. Nonadjacent estimates use nominal diagram sums, not a published bypass-service duration.",
+    "Local stop IDs are dataset identifiers; they are not claimed to be official operator identifiers."
+  ],
+  "cell_comparisons": [
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 1,
+      "json_time": "11:20",
+      "ocr_raw": "11:20",
+      "ocr_normalized": "11:20",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 2,
+      "json_time": "12:20",
+      "ocr_raw": "12:20",
+      "ocr_normalized": "12:20",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 3,
+      "json_time": "13:20",
+      "ocr_raw": "13:20",
+      "ocr_normalized": "13:20",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 4,
+      "json_time": "14:20",
+      "ocr_raw": "1420",
+      "ocr_normalized": "14:20",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 5,
+      "json_time": "15:00",
+      "ocr_raw": "15:00",
+      "ocr_normalized": "15:00",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 6,
+      "json_time": "15:30",
+      "ocr_raw": "1530",
+      "ocr_normalized": "15:30",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 7,
+      "json_time": "16:00",
+      "ocr_raw": "16:00",
+      "ocr_normalized": "16:00",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 8,
+      "json_time": "17:00",
+      "ocr_raw": "17:00",
+      "ocr_normalized": "17:00",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 9,
+      "json_time": "17:40",
+      "ocr_raw": "17:40",
+      "ocr_normalized": "17:40",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 10,
+      "json_time": "18:40",
+      "ocr_raw": "18:40",
+      "ocr_normalized": "18:40",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 11,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "MAGOK_TO_YEOUIDO",
+      "source_row": 12,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 1,
+      "json_time": "12:53",
+      "ocr_raw": "12:53",
+      "ocr_normalized": "12:53",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 2,
+      "json_time": "13:53",
+      "ocr_raw": "13•33",
+      "ocr_normalized": "13:33",
+      "result": "visual_match_after_ocr_misread",
+      "review_note": "Original image visibly reads 13:53. Enhanced OCR misread the minute tens digit as 3 (13•33). Original-size OCR separately read 1353. JSON follows the image."
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 3,
+      "json_time": "14:53",
+      "ocr_raw": "14:53",
+      "ocr_normalized": "14:53",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 4,
+      "json_time": "15:53",
+      "ocr_raw": "15:53",
+      "ocr_normalized": "15:53",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 5,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 6,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 7,
+      "json_time": "17:33",
+      "ocr_raw": "1733",
+      "ocr_normalized": "17:33",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 8,
+      "json_time": "18:33",
+      "ocr_raw": "18:33",
+      "ocr_normalized": "18:33",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 9,
+      "json_time": "19:13",
+      "ocr_raw": "19:13",
+      "ocr_normalized": "19:13",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 10,
+      "json_time": "20:13",
+      "ocr_raw": "20:13",
+      "ocr_normalized": "20:13",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 11,
+      "json_time": "21:09",
+      "ocr_raw": "21:09",
+      "ocr_normalized": "21:09",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MAGOK_ARRIVAL",
+      "source_row": 12,
+      "json_time": "21:39",
+      "ocr_raw": "21:39",
+      "ocr_normalized": "21:39",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 1,
+      "json_time": "11:42",
+      "ocr_raw": "11:42",
+      "ocr_normalized": "11:42",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 2,
+      "json_time": "12:42",
+      "ocr_raw": "12:42",
+      "ocr_normalized": "12:42",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 3,
+      "json_time": "13:42",
+      "ocr_raw": "13:42",
+      "ocr_normalized": "13:42",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 4,
+      "json_time": "14:42",
+      "ocr_raw": "14:42",
+      "ocr_normalized": "14:42",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 5,
+      "json_time": "15:22",
+      "ocr_raw": "1522",
+      "ocr_normalized": "15:22",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 6,
+      "json_time": "15:52",
+      "ocr_raw": "15:52",
+      "ocr_normalized": "15:52",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 7,
+      "json_time": "16:22",
+      "ocr_raw": "1622",
+      "ocr_normalized": "16:22",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 8,
+      "json_time": "17:22",
+      "ocr_raw": "17•22",
+      "ocr_normalized": "17:22",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 9,
+      "json_time": "18:02",
+      "ocr_raw": "18:02",
+      "ocr_normalized": "18:02",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 10,
+      "json_time": "19:02",
+      "ocr_raw": "19:02",
+      "ocr_normalized": "19:02",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 11,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "MANGWON_TO_YEOUIDO",
+      "source_row": 12,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 1,
+      "json_time": "12:34",
+      "ocr_raw": "12:34",
+      "ocr_normalized": "12:34",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 2,
+      "json_time": "13:34",
+      "ocr_raw": "1334",
+      "ocr_normalized": "13:34",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 3,
+      "json_time": "14:34",
+      "ocr_raw": "14:34",
+      "ocr_normalized": "14:34",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 4,
+      "json_time": "15:34",
+      "ocr_raw": "15:34",
+      "ocr_normalized": "15:34",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 5,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 6,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 7,
+      "json_time": "17:14",
+      "ocr_raw": "17:14",
+      "ocr_normalized": "17:14",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 8,
+      "json_time": "18:14",
+      "ocr_raw": "18:14",
+      "ocr_normalized": "18:14",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 9,
+      "json_time": "18:54",
+      "ocr_raw": "18:54",
+      "ocr_normalized": "18:54",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 10,
+      "json_time": "19:54",
+      "ocr_raw": "19:54",
+      "ocr_normalized": "19:54",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 11,
+      "json_time": "20:48",
+      "ocr_raw": "20:48",
+      "ocr_normalized": "20:48",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "MANGWON_TO_MAGOK",
+      "source_row": 12,
+      "json_time": "21:18",
+      "ocr_raw": "21:18",
+      "ocr_normalized": "21:18",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 1,
+      "json_time": "12:12",
+      "ocr_raw": "12:12",
+      "ocr_normalized": "12:12",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 2,
+      "json_time": "13:12",
+      "ocr_raw": "13:12",
+      "ocr_normalized": "13:12",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 3,
+      "json_time": "14:12",
+      "ocr_raw": "14:12",
+      "ocr_normalized": "14:12",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 4,
+      "json_time": "15:12",
+      "ocr_raw": "15:12",
+      "ocr_normalized": "15:12",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 5,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 6,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 7,
+      "json_time": "16:52",
+      "ocr_raw": "16:52",
+      "ocr_normalized": "16:52",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 8,
+      "json_time": "17:52",
+      "ocr_raw": "17:52",
+      "ocr_normalized": "17:52",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 9,
+      "json_time": "18:32",
+      "ocr_raw": "1832",
+      "ocr_normalized": "18:32",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 10,
+      "json_time": "19:32",
+      "ocr_raw": "1932",
+      "ocr_normalized": "19:32",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 11,
+      "json_time": "20:25",
+      "ocr_raw": "20.25",
+      "ocr_normalized": "20:25",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_MAGOK",
+      "source_row": 12,
+      "json_time": "20:55",
+      "ocr_raw": "20:55",
+      "ocr_normalized": "20:55",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 1,
+      "json_time": "12:38",
+      "ocr_raw": "12:38",
+      "ocr_normalized": "12:38",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 2,
+      "json_time": "13:35",
+      "ocr_raw": "1335",
+      "ocr_normalized": "13:35",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 3,
+      "json_time": "14:40",
+      "ocr_raw": "14:40",
+      "ocr_normalized": "14:40",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 4,
+      "json_time": "15:40",
+      "ocr_raw": "15:40",
+      "ocr_normalized": "15:40",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 5,
+      "json_time": "16:00",
+      "ocr_raw": "16:00",
+      "ocr_normalized": "16:00",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 6,
+      "json_time": "16:30",
+      "ocr_raw": "1630",
+      "ocr_normalized": "16:30",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 7,
+      "json_time": "17:08",
+      "ocr_raw": "17:08",
+      "ocr_normalized": "17:08",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 8,
+      "json_time": "18:05",
+      "ocr_raw": "18:05",
+      "ocr_normalized": "18:05",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 9,
+      "json_time": "19:05",
+      "ocr_raw": "19:05",
+      "ocr_normalized": "19:05",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 10,
+      "json_time": "20:05",
+      "ocr_raw": "20:05",
+      "ocr_normalized": "20:05",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 11,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "YEOUIDO_TO_JAMSIL",
+      "source_row": 12,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 1,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 2,
+      "json_time": "12:55",
+      "ocr_raw": "12:55",
+      "ocr_normalized": "12:55",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 3,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 4,
+      "json_time": "14:55",
+      "ocr_raw": "14:55",
+      "ocr_normalized": "14:55",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 5,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 6,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 7,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 8,
+      "json_time": "17:25",
+      "ocr_raw": "1725",
+      "ocr_normalized": "17:25",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 9,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 10,
+      "json_time": "19:25",
+      "ocr_raw": "1925",
+      "ocr_normalized": "19:25",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 11,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_YEOUIDO",
+      "source_row": 12,
+      "json_time": "20:15",
+      "ocr_raw": "20:15",
+      "ocr_normalized": "20:15",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 1,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 2,
+      "json_time": "14:07",
+      "ocr_raw": "14:07",
+      "ocr_normalized": "14:07",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 3,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 4,
+      "json_time": "16:12",
+      "ocr_raw": "16:12",
+      "ocr_normalized": "16:12",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 5,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 6,
+      "json_time": "17:02",
+      "ocr_raw": "17:02",
+      "ocr_normalized": "17:02",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 7,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 8,
+      "json_time": "18:37",
+      "ocr_raw": "1837",
+      "ocr_normalized": "18:37",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 9,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 10,
+      "json_time": "20:37",
+      "ocr_raw": "2037",
+      "ocr_normalized": "20:37",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 11,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "APGUJEONG_TO_JAMSIL",
+      "source_row": 12,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 1,
+      "json_time": "11:52",
+      "ocr_raw": "11:52",
+      "ocr_normalized": "11:52",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 2,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 3,
+      "json_time": "13:52",
+      "ocr_raw": "13:52",
+      "ocr_normalized": "13:52",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 4,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 5,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 6,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 7,
+      "json_time": "16:22",
+      "ocr_raw": "1622",
+      "ocr_normalized": "16:22",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 8,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 9,
+      "json_time": "18:22",
+      "ocr_raw": "1822",
+      "ocr_normalized": "18:22",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 10,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 11,
+      "json_time": "19:42",
+      "ocr_raw": "19:42",
+      "ocr_normalized": "19:42",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_YEOUIDO",
+      "source_row": 12,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 1,
+      "json_time": "13:13",
+      "ocr_raw": "13:13",
+      "ocr_normalized": "13:13",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 2,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 3,
+      "json_time": "15:15",
+      "ocr_raw": "15:15",
+      "ocr_normalized": "15:15",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 4,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 5,
+      "json_time": "16:35",
+      "ocr_raw": "16:35",
+      "ocr_normalized": "16:35",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 6,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 7,
+      "json_time": "17:43",
+      "ocr_raw": "17:43",
+      "ocr_normalized": "17:43",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 8,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 9,
+      "json_time": "19:40",
+      "ocr_raw": "19:40",
+      "ocr_normalized": "19:40",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 10,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 11,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "OKSU_TO_JAMSIL",
+      "source_row": 12,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 1,
+      "json_time": "11:35",
+      "ocr_raw": "11:35",
+      "ocr_normalized": "11:35",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 2,
+      "json_time": "12:35",
+      "ocr_raw": "12:35",
+      "ocr_normalized": "12:35",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 3,
+      "json_time": "13:35",
+      "ocr_raw": "1335",
+      "ocr_normalized": "13:35",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 4,
+      "json_time": "14:35",
+      "ocr_raw": "1435",
+      "ocr_normalized": "14:35",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 5,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 6,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 7,
+      "json_time": "16:05",
+      "ocr_raw": "16:05",
+      "ocr_normalized": "16:05",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 8,
+      "json_time": "17:05",
+      "ocr_raw": "17:05",
+      "ocr_normalized": "17:05",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 9,
+      "json_time": "18:05",
+      "ocr_raw": "18:05",
+      "ocr_normalized": "18:05",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 10,
+      "json_time": "19:05",
+      "ocr_raw": "19:05",
+      "ocr_normalized": "19:05",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 11,
+      "json_time": "19:25",
+      "ocr_raw": "19:25",
+      "ocr_normalized": "19:25",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_YEOUIDO",
+      "source_row": 12,
+      "json_time": "19:55",
+      "ocr_raw": "19:55",
+      "ocr_normalized": "19:55",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 1,
+      "json_time": "13:31",
+      "ocr_raw": "13:31",
+      "ocr_normalized": "13:31",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 2,
+      "json_time": "14:28",
+      "ocr_raw": "1428",
+      "ocr_normalized": "14:28",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 3,
+      "json_time": "15:33",
+      "ocr_raw": "15:33",
+      "ocr_normalized": "15:33",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 4,
+      "json_time": "16:33",
+      "ocr_raw": "1633",
+      "ocr_normalized": "16:33",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 5,
+      "json_time": "16:53",
+      "ocr_raw": "16:53",
+      "ocr_normalized": "16:53",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 6,
+      "json_time": "17:23",
+      "ocr_raw": "17:23",
+      "ocr_normalized": "17:23",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 7,
+      "json_time": "18:01",
+      "ocr_raw": "18:01",
+      "ocr_normalized": "18:01",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 8,
+      "json_time": "18:58",
+      "ocr_raw": "18:58",
+      "ocr_normalized": "18:58",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 9,
+      "json_time": "19:58",
+      "ocr_raw": "19:58",
+      "ocr_normalized": "19:58",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 10,
+      "json_time": "20:58",
+      "ocr_raw": "20:58",
+      "ocr_normalized": "20:58",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 11,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "SEOUL_FOREST_TO_JAMSIL",
+      "source_row": 12,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 1,
+      "json_time": "11:17",
+      "ocr_raw": "11:17",
+      "ocr_normalized": "11:17",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 2,
+      "json_time": "12:17",
+      "ocr_raw": "12:17",
+      "ocr_normalized": "12:17",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 3,
+      "json_time": "13:17",
+      "ocr_raw": "13:17",
+      "ocr_normalized": "13:17",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 4,
+      "json_time": "14:17",
+      "ocr_raw": "14:17",
+      "ocr_normalized": "14:17",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 5,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 6,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 7,
+      "json_time": "15:47",
+      "ocr_raw": "15:47",
+      "ocr_normalized": "15:47",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 8,
+      "json_time": "16:47",
+      "ocr_raw": "16:47",
+      "ocr_normalized": "16:47",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 9,
+      "json_time": "17:47",
+      "ocr_raw": "17:47",
+      "ocr_normalized": "17:47",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 10,
+      "json_time": "18:47",
+      "ocr_raw": "18:47",
+      "ocr_normalized": "18:47",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 11,
+      "json_time": "19:07",
+      "ocr_raw": "19:07",
+      "ocr_normalized": "19:07",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_YEOUIDO",
+      "source_row": 12,
+      "json_time": "19:37",
+      "ocr_raw": "19:37",
+      "ocr_normalized": "19:37",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 1,
+      "json_time": "13:49",
+      "ocr_raw": "13:49",
+      "ocr_normalized": "13:49",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 2,
+      "json_time": "14:46",
+      "ocr_raw": "14:46",
+      "ocr_normalized": "14:46",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 3,
+      "json_time": "15:51",
+      "ocr_raw": "15:51",
+      "ocr_normalized": "15:51",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 4,
+      "json_time": "16:51",
+      "ocr_raw": "16:51",
+      "ocr_normalized": "16:51",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 5,
+      "json_time": "17:11",
+      "ocr_raw": "17:11",
+      "ocr_normalized": "17:11",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 6,
+      "json_time": "17:41",
+      "ocr_raw": "1741",
+      "ocr_normalized": "17:41",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 7,
+      "json_time": "18:19",
+      "ocr_raw": "18:19",
+      "ocr_normalized": "18:19",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 8,
+      "json_time": "19:16",
+      "ocr_raw": "19:16",
+      "ocr_normalized": "19:16",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 9,
+      "json_time": "20:16",
+      "ocr_raw": "20:16",
+      "ocr_normalized": "20:16",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 10,
+      "json_time": "21:16",
+      "ocr_raw": "21:16",
+      "ocr_normalized": "21:16",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 11,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "TTUKSEOM_TO_JAMSIL",
+      "source_row": 12,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 1,
+      "json_time": "11:00",
+      "ocr_raw": "11:00",
+      "ocr_normalized": "11:00",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 2,
+      "json_time": "12:00",
+      "ocr_raw": "12:00",
+      "ocr_normalized": "12:00",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 3,
+      "json_time": "13:00",
+      "ocr_raw": "13:00",
+      "ocr_normalized": "13:00",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 4,
+      "json_time": "14:00",
+      "ocr_raw": "14:00",
+      "ocr_normalized": "14:00",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 5,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 6,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 7,
+      "json_time": "15:30",
+      "ocr_raw": "15:30",
+      "ocr_normalized": "15:30",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 8,
+      "json_time": "16:30",
+      "ocr_raw": "16:30",
+      "ocr_normalized": "16:30",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 9,
+      "json_time": "17:30",
+      "ocr_raw": "17:30",
+      "ocr_normalized": "17:30",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 10,
+      "json_time": "18:30",
+      "ocr_raw": "18:30",
+      "ocr_normalized": "18:30",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 11,
+      "json_time": "18:50",
+      "ocr_raw": "18:50",
+      "ocr_normalized": "18:50",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_TO_YEOUIDO",
+      "source_row": 12,
+      "json_time": "19:20",
+      "ocr_raw": "19:20",
+      "ocr_normalized": "19:20",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 1,
+      "json_time": "14:03",
+      "ocr_raw": "14:03",
+      "ocr_normalized": "14:03",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 2,
+      "json_time": "15:00",
+      "ocr_raw": "15:00",
+      "ocr_normalized": "15:00",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 3,
+      "json_time": "16:05",
+      "ocr_raw": "16:05",
+      "ocr_normalized": "16:05",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 4,
+      "json_time": "17:05",
+      "ocr_raw": "17:05",
+      "ocr_normalized": "17:05",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 5,
+      "json_time": "17:25",
+      "ocr_raw": "1725",
+      "ocr_normalized": "17:25",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 6,
+      "json_time": "17:55",
+      "ocr_raw": "17:55",
+      "ocr_normalized": "17:55",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 7,
+      "json_time": "18:33",
+      "ocr_raw": "1833",
+      "ocr_normalized": "18:33",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 8,
+      "json_time": "19:30",
+      "ocr_raw": "19:30",
+      "ocr_normalized": "19:30",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 9,
+      "json_time": "20:30",
+      "ocr_raw": "2030",
+      "ocr_normalized": "20:30",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 10,
+      "json_time": "21:30",
+      "ocr_raw": "21:30",
+      "ocr_normalized": "21:30",
+      "result": "ocr_match"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 11,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    },
+    {
+      "column_id": "JAMSIL_ARRIVAL",
+      "source_row": 12,
+      "json_time": null,
+      "ocr_raw": null,
+      "ocr_normalized": null,
+      "result": "blank_preserved"
+    }
+  ]
+}

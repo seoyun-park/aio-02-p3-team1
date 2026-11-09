@@ -1,0 +1,257 @@
+name: Verified application pipeline
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verified-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify release contracts
+        run: python -m unittest discover -s tests/pipeline -v
+      - name: Build runtime and test images before tests
+        run: |
+          docker build --provenance=false --target production -t ci-backend:$CI_SHA backend
+          docker build --provenance=false --target test -t ci-backend-test:$CI_SHA backend
+      - name: Apply migrations and run database-backed tests with mock external services
+        run: |
+          mkdir -p reports
+          chmod 777 reports
+          docker compose --env-file /dev/null -p backend-ci -f compose.ci.yaml up -d --wait db
+          docker compose --env-file /dev/null -p backend-ci -f compose.ci.yaml run --rm --no-deps backend python scripts/apply_migrations.py --apply
+          docker compose --env-file /dev/null -p backend-ci -f compose.ci.yaml run --rm tests
+      - name: Save the tested runtime image
+        run: docker save -o backend.tar ci-backend:$CI_SHA
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-image
+          path: backend.tar
+          if-no-files-found: error
+          retention-days: 7
+      - name: Collect diagnostics before cleanup
+        if: always()
+        run: |
+          mkdir -p reports
+          docker compose --env-file /dev/null -p backend-ci -f compose.ci.yaml logs --no-color > reports/backend-containers.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-results
+          path: reports/
+          retention-days: 30
+      - name: Remove only this run's disposable CI resources
+        if: always()
+        run: docker compose --env-file /dev/null -p backend-ci -f compose.ci.yaml down --volumes --remove-orphans
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build the runtime image before tests
+        env:
+          CI_SHA: ${{ github.sha }}
+          MAP_KEY: ${{ vars.VITE_KAKAO_MAP_JS_KEY }}
+          RELEASE_BUILD: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+        run: |
+          if [ "$RELEASE_BUILD" = "true" ] && [ -z "$MAP_KEY" ]; then
+            echo '::error::VITE_KAKAO_MAP_JS_KEY is required for a release image'
+            exit 1
+          fi
+          MAP_KEY="${MAP_KEY:-ci-public-placeholder}"
+          docker build --provenance=false --build-arg VITE_KAKAO_MAP_JS_KEY="$MAP_KEY" -f frontend/Dockerfile.prod -t ci-frontend:$CI_SHA frontend
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm run typecheck
+        working-directory: frontend
+      - name: Run all frontend tests and enforce all four coverage metrics
+        run: npm run test:coverage
+        working-directory: frontend
+      - name: Save the tested runtime image
+        env:
+          CI_SHA: ${{ github.sha }}
+        run: docker save -o frontend.tar ci-frontend:$CI_SHA
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-image
+          path: frontend.tar
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-results
+          path: frontend/coverage/
+          retention-days: 30
+
+  integration:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-image'
+          merge-multiple: true
+      - name: Start exactly the built images with a fresh database
+        run: |
+          docker load -i backend.tar
+          docker load -i frontend.tar
+          docker compose --env-file /dev/null -p integration-ci -f compose.ci.yaml up -d --wait db
+          docker compose --env-file /dev/null -p integration-ci -f compose.ci.yaml run --rm --no-deps backend python scripts/apply_migrations.py --apply
+          docker compose --env-file /dev/null -p integration-ci -f compose.ci.yaml up -d --wait backend frontend
+      - name: Exercise actual Nginx, authentication and API
+        run: python backend/scripts/ci_smoke.py
+      - name: Record the tested image identities
+        run: |
+          python scripts/ci/release_contract.py create --sha "$CI_SHA" \
+            --backend-archive backend.tar --frontend-archive frontend.tar --output tested-images.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tested-image-manifest
+          path: tested-images.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Collect logs
+        if: always()
+        run: |
+          mkdir -p reports
+          docker compose --env-file /dev/null -p integration-ci -f compose.ci.yaml logs --no-color > reports/integration.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-results
+          path: reports/
+          retention-days: 30
+      - name: Cleanup isolated CI stack
+        if: always()
+        run: docker compose --env-file /dev/null -p integration-ci -f compose.ci.yaml down --volumes --remove-orphans
+
+  pipeline-gate:
+    needs: [backend, frontend, integration]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block failed, cancelled, missing and skipped requirements
+        env:
+          RESULTS: '{"backend":"${{ needs.backend.result }}","frontend":"${{ needs.frontend.result }}","integration":"${{ needs.integration.result }}"}'
+        run: python scripts/ci/release_contract.py gate --results "$RESULTS"
+
+  publish:
+    needs: [pipeline-gate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-image'
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: tested-image-manifest
+      - name: Load and verify tested images without rebuilding
+        env:
+          CI_SHA: ${{ github.sha }}
+        run: |
+          for name in backend frontend; do
+            python scripts/ci/release_contract.py verify --manifest tested-images.json --sha "$CI_SHA" --name "$name" \
+              --archive "$name.tar"
+          done
+          docker load -i backend.tar
+          docker load -i frontend.tar
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_BACKEND_ECR_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2.1.7
+        id: ecr
+      - name: Push the verified backend image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/seoulwave:${{ github.sha }}
+          CI_SHA: ${{ github.sha }}
+        run: |
+          docker tag ci-backend:$CI_SHA "$IMAGE"
+          docker push "$IMAGE"
+          aws ecr batch-get-image --repository-name seoulwave --image-ids imageTag="$CI_SHA" \
+            --accepted-media-types application/vnd.docker.distribution.manifest.v2+json application/vnd.oci.image.manifest.v1+json \
+            --output json > backend-registry.json
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_FRONTEND_ECR_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Authenticate Docker with the frontend publishing role
+        uses: aws-actions/amazon-ecr-login@v2.1.7
+        id: frontend-ecr
+      - name: Require both images in the configured registry
+        env:
+          BACKEND_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          FRONTEND_REGISTRY: ${{ steps.frontend-ecr.outputs.registry }}
+        run: test "$BACKEND_REGISTRY" = "$FRONTEND_REGISTRY"
+      - name: Push verified frontend and record immutable deployment references
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          FRONTEND_REPOSITORY: ${{ vars.ECR_FRONTEND_REPOSITORY }}
+          CI_SHA: ${{ github.sha }}
+        run: |
+          test -n "$FRONTEND_REPOSITORY"
+          docker tag ci-frontend:$CI_SHA "$REGISTRY/$FRONTEND_REPOSITORY:$CI_SHA"
+          docker push "$REGISTRY/$FRONTEND_REPOSITORY:$CI_SHA"
+          python scripts/ci/published_release.py --registry "$REGISTRY" --frontend-repository "$FRONTEND_REPOSITORY" --sha "$CI_SHA" --run-id "$GITHUB_RUN_ID"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-release
+          path: release.json
+          if-no-files-found: error
+          retention-days: 30
+
+  discord_notify:
+    needs: [backend, frontend, integration, pipeline-gate, publish]
+    if: always() && github.event.pull_request.head.repo.fork != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve Discord CI result notifications
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_FRONTEND_ID: ${{ secrets.DISCORD_FRONTEND_ID || vars.DISCORD_FRONTEND_ID }}
+          DISCORD_BACKEND_ID: ${{ secrets.DISCORD_BACKEND_ID || vars.DISCORD_BACKEND_ID }}
+          DISCORD_AGENT_ID: ${{ secrets.DISCORD_AGENT_ID || vars.DISCORD_AGENT_ID }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ vars.DISCORD_CHANNEL_ID || secrets.DISCORD_CHANNEL_ID }}
+          RESULTS: '{"backend":"${{ needs.backend.result }}","frontend":"${{ needs.frontend.result }}","integration":"${{ needs.integration.result }}","gate":"${{ needs.pipeline-gate.result }}","publish":"${{ needs.publish.result }}"}'
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: python scripts/ci/notify_discord.py

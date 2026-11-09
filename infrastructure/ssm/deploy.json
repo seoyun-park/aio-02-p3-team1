@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "2.2",
+  "description": "SeoulWave-Deploy-v1: deploy one verified release to its fixed EC2 host.",
+  "parameters": {
+    "SourceSha": {
+      "type": "String",
+      "description": "Full verified source commit SHA.",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^[0-9a-f]{40}$"
+    },
+    "RunId": {
+      "type": "String",
+      "description": "Original successful pipeline run ID.",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^[0-9]{1,20}$"
+    },
+    "BackendImage": {
+      "type": "String",
+      "description": "Immutable digest in the fixed backend ECR repository.",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^909345918351\\.dkr\\.ecr\\.ap-northeast-2\\.amazonaws\\.com/seoulwave@sha256:[0-9a-f]{64}$"
+    },
+    "FrontendImage": {
+      "type": "String",
+      "description": "Immutable digest in the fixed frontend ECR repository.",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^909345918351\\.dkr\\.ecr\\.ap-northeast-2\\.amazonaws\\.com/seoul-wave-frontend@sha256:[0-9a-f]{64}$"
+    },
+    "BackendConfigId": {
+      "type": "String",
+      "description": "Expected backend OCI image config ID.",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "FrontendConfigId": {
+      "type": "String",
+      "description": "Expected frontend OCI image config ID.",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "prepareFixedDirectory",
+      "precondition": {
+        "StringEquals": ["platformType", "Linux"]
+      },
+      "inputs": {
+        "timeoutSeconds": "30",
+        "runCommand": [
+          "install -d -o root -g root -m 0750 /var/lib/seoul-wave-deploy"
+        ]
+      }
+    },
+    {
+      "action": "aws:downloadContent",
+      "name": "downloadExactCommitRunner",
+      "precondition": {
+        "StringEquals": ["platformType", "Linux"]
+      },
+      "inputs": {
+        "sourceType": "GitHub",
+        "sourceInfo": {
+          "owner": "munchkin112",
+          "repository": "SEOUL-WAVE",
+          "path": "scripts/deploy/host_deploy.py",
+          "getOptions": "commitID:{{ SourceSha }}"
+        },
+        "destinationPath": "/var/lib/seoul-wave-deploy/host_deploy.py"
+      }
+    },
+    {
+      "action": "aws:runShellScript",
+      "name": "runFixedDeployment",
+      "precondition": {
+        "StringEquals": ["platformType", "Linux"]
+      },
+      "inputs": {
+        "timeoutSeconds": "3600",
+        "runCommand": [
+          "if [ -z \"${SSM_SourceSha+x}\" ]; then export SSM_SourceSha='{{ SourceSha }}'; fi",
+          "if [ -z \"${SSM_RunId+x}\" ]; then export SSM_RunId='{{ RunId }}'; fi",
+          "if [ -z \"${SSM_BackendImage+x}\" ]; then export SSM_BackendImage='{{ BackendImage }}'; fi",
+          "if [ -z \"${SSM_FrontendImage+x}\" ]; then export SSM_FrontendImage='{{ FrontendImage }}'; fi",
+          "if [ -z \"${SSM_BackendConfigId+x}\" ]; then export SSM_BackendConfigId='{{ BackendConfigId }}'; fi",
+          "if [ -z \"${SSM_FrontendConfigId+x}\" ]; then export SSM_FrontendConfigId='{{ FrontendConfigId }}'; fi",
+          "exec python3 /var/lib/seoul-wave-deploy/host_deploy.py --source-sha \"$SSM_SourceSha\" --run-id \"$SSM_RunId\" --backend-image \"$SSM_BackendImage\" --frontend-image \"$SSM_FrontendImage\" --backend-config-id \"$SSM_BackendConfigId\" --frontend-config-id \"$SSM_FrontendConfigId\""
+        ]
+      }
+    }
+  ]
+}

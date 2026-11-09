@@ -1,0 +1,107 @@
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - max_connections=30
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env.prod}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env.prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.prod}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE to an exact SHA-tagged ECR image in .env.prod}
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:?Set APP_ENV=production in .env.prod}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env.prod}
+      SITE_ACCESS_PASSWORDS: ${SITE_ACCESS_PASSWORDS:?Set SITE_ACCESS_PASSWORDS in .env.prod}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:?Set SESSION_COOKIE_SECURE=true in .env.prod}
+      SEOUL_CULTURE_API_KEY: ${SEOUL_CULTURE_API_KEY:?Set SEOUL_CULTURE_API_KEY in .env.prod}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in .env.prod}
+      OPENAI_MODEL: ${OPENAI_MODEL:?Set OPENAI_MODEL in .env.prod}
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: ${POSTGRES_DB:?Set POSTGRES_DB in .env.prod}
+      DATABASE_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env.prod}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.prod}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - application
+      - database
+    # /ready checks DB connectivity; /health is liveness only and does not prove DB readiness.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  itinerary-worker:
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE to an exact SHA-tagged ECR image in .env.prod}
+    command: ["python", "-m", "app.itinerary_worker"]
+    restart: unless-stopped
+    environment:
+      SEOUL_CULTURE_API_KEY: ${SEOUL_CULTURE_API_KEY:?Set SEOUL_CULTURE_API_KEY in .env.prod}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in .env.prod}
+      OPENAI_MODEL: ${OPENAI_MODEL:?Set OPENAI_MODEL in .env.prod}
+      FERRY_STOP_COORDINATES_JSON: ${FERRY_STOP_COORDINATES_JSON:-}
+      EVENT_DESTINATION_RADIUS_KM: ${EVENT_DESTINATION_RADIUS_KM:-5}
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: ${POSTGRES_DB:?Set POSTGRES_DB in .env.prod}
+      DATABASE_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env.prod}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.prod}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - application
+      - database
+  frontend:
+    image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE to an exact SHA-tagged ECR image in .env.prod}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - application
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  application:
+    driver: bridge
+  database:
+    driver: bridge
+    internal: true
+
+volumes:
+  postgres_data:
+    name: seoul-wave-prod-postgres-data

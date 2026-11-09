@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SendOnlyFixedDeploymentDocumentToFixedInstance",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": [
+        "arn:aws:ssm:ap-northeast-2:909345918351:document/SeoulWave-Deploy-v1",
+        "arn:aws:ec2:ap-northeast-2:909345918351:instance/i-0bedbcc72c616cdb1"
+      ]
+    },
+    {
+      "Sid": "PollOnlyCommandInvocationStatus",
+      "Effect": "Allow",
+      "Action": "ssm:GetCommandInvocation",
+      "Resource": "*"
+    }
+  ]
+}

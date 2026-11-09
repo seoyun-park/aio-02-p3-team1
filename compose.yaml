@@ -1,0 +1,105 @@
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-seoul_wave}
+      POSTGRES_USER: ${POSTGRES_USER:-seoul_wave_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the repository root .env file}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      SEOUL_CULTURE_API_KEY: ${SEOUL_CULTURE_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      APP_ENV: ${APP_ENV:-development}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      SITE_ACCESS_PASSWORDS: ${SITE_ACCESS_PASSWORDS:-}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-}
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: ${POSTGRES_DB:-seoul_wave}
+      DATABASE_USER: ${POSTGRES_USER:-seoul_wave_app}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the repository root .env file}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/data/processed:/app/data/processed
+
+  itinerary-worker:
+    build: ./backend
+    command: ["python", "-m", "app.itinerary_worker"]
+    restart: unless-stopped
+    expose:
+      - "8090"
+    environment:
+      SEOUL_CULTURE_API_KEY: ${SEOUL_CULTURE_API_KEY:-}
+      FERRY_STOP_COORDINATES_JSON: ${FERRY_STOP_COORDINATES_JSON:-}
+      EVENT_DESTINATION_RADIUS_KM: ${EVENT_DESTINATION_RADIUS_KM:-5}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: ${POSTGRES_DB:-seoul_wave}
+      DATABASE_USER: ${POSTGRES_USER:-seoul_wave_app}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the repository root .env file}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  database-health-monitor:
+    build: ./backend
+    command: ["python", "-m", "app.database_health_monitor"]
+    restart: unless-stopped
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: ${POSTGRES_DB:-seoul_wave}
+      DATABASE_USER: ${POSTGRES_USER:-seoul_wave_app}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the repository root .env file}
+      DATABASE_MONITOR_INTERVAL_SECONDS: ${DATABASE_MONITOR_INTERVAL_SECONDS:-10}
+      DATABASE_MONITOR_FAILURE_THRESHOLD: ${DATABASE_MONITOR_FAILURE_THRESHOLD:-2}
+      DATABASE_MONITOR_SPOOL_PATH: /var/lib/seoul-wave-health-monitor/monitor.sqlite3
+    volumes:
+      - database_health_monitor_state:/var/lib/seoul-wave-health-monitor
+    depends_on:
+      db:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_PROXY_TARGET: http://backend:8000
+      VITE_KAKAO_MAP_JS_KEY: ${VITE_KAKAO_MAP_JS_KEY:-}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  database_health_monitor_state:

@@ -1,0 +1,59 @@
+name: Publish frozen Admin images
+on:
+  workflow_dispatch:
+    inputs:
+      admin_sha:
+        description: Reviewed 40-character commit SHA from SEOUL-WAVE_admin
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Validate immutable source revision
+        env:
+          ADMIN_SHA: ${{ inputs.admin_sha }}
+        run: |
+          [[ "$ADMIN_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
+      - uses: actions/checkout@v4
+        with:
+          repository: munchkin112/SEOUL-WAVE_admin
+          ref: ${{ inputs.admin_sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r backend/requirements-dev.txt
+      - run: python -m pytest
+        working-directory: backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build -- --base=/admin/
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: /admin
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_BACKEND_ECR_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2.1.7
+        id: ecr
+      - name: Build and publish both verified images
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          ADMIN_SHA: ${{ inputs.admin_sha }}
+        run: |
+          API_IMAGE="$REGISTRY/seoulwave:admin-api-$ADMIN_SHA"
+          FRONTEND_IMAGE="$REGISTRY/seoulwave:admin-frontend-$ADMIN_SHA"
+          docker build --label org.opencontainers.image.revision="$ADMIN_SHA" -t "$API_IMAGE" backend
+          docker build --label org.opencontainers.image.revision="$ADMIN_SHA" -f frontend/Dockerfile.prod -t "$FRONTEND_IMAGE" frontend
+          docker push "$API_IMAGE"
+          docker push "$FRONTEND_IMAGE"

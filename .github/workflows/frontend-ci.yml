@@ -1,0 +1,234 @@
+name: Legacy Frontend CI (manual diagnostics)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Test React frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    outputs:
+      install_result: ${{ steps.install.outcome }}
+      lint_result: ${{ steps.lint.outcome }}
+      typecheck_result: ${{ steps.typecheck.outcome }}
+      test_result: ${{ steps.test.outcome }}
+      build_result: ${{ steps.build.outcome }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        id: install
+        run: npm ci
+
+      - name: Run ESLint
+        id: lint
+        run: npm run lint
+
+      - name: Check TypeScript types
+        id: typecheck
+        run: npm run typecheck
+
+      - name: Run frontend tests
+        id: test
+        run: npm test
+
+      - name: Build frontend
+        id: build
+        run: npm run build
+
+  publish_frontend_image:
+    name: Publish Frontend image to ECR
+    needs:
+      - frontend
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_FRONTEND_ECR_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2.1.7
+
+      - name: Build and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_FRONTEND_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+          VITE_KAKAO_MAP_JS_KEY: ${{ vars.VITE_KAKAO_MAP_JS_KEY }}
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          if [ -z "$VITE_KAKAO_MAP_JS_KEY" ]; then
+            echo "::error::VITE_KAKAO_MAP_JS_KEY is required to publish the frontend image"
+            exit 1
+          fi
+          docker build --build-arg VITE_KAKAO_MAP_JS_KEY --file frontend/Dockerfile.prod --tag "$IMAGE_URI" frontend
+          docker push "$IMAGE_URI"
+
+  discord_notify:
+    name: Notify Frontend result on Discord
+    needs:
+      - frontend
+      - publish_frontend_image
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Frontend CI result to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_FRONTEND_ID: ${{ vars.DISCORD_FRONTEND_ID }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+          FRONTEND_IMAGE_RESULT: ${{ needs.publish_frontend_image.result }}
+          FRONTEND_INSTALL_RESULT: ${{ needs.frontend.outputs.install_result }}
+          FRONTEND_LINT_RESULT: ${{ needs.frontend.outputs.lint_result }}
+          FRONTEND_TYPECHECK_RESULT: ${{ needs.frontend.outputs.typecheck_result }}
+          FRONTEND_TEST_RESULT: ${{ needs.frontend.outputs.test_result }}
+          FRONTEND_BUILD_RESULT: ${{ needs.frontend.outputs.build_result }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from urllib.error import HTTPError, URLError
+          from urllib.parse import urlsplit
+          from urllib.request import Request, urlopen
+
+          webhook_url = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
+          if not webhook_url:
+              print("DISCORD_WEBHOOK_URL is not configured")
+              raise SystemExit(1)
+
+          webhook_parts = urlsplit(webhook_url)
+          webhook_path_is_valid = re.fullmatch(
+              r"/api/(?:v[0-9]+/)?webhooks/[0-9]{17,20}/[A-Za-z0-9._-]+",
+              webhook_parts.path,
+          )
+          if (
+              webhook_parts.scheme != "https"
+              or webhook_parts.hostname not in {"discord.com", "discordapp.com"}
+              or not webhook_path_is_valid
+          ):
+              print("DISCORD_WEBHOOK_URL 형식 확인 필요")
+              raise SystemExit(1)
+          print("Discord webhook URL 형식: 유효")
+
+          lines = []
+          mentioned_users = []
+          result = os.environ.get("FRONTEND_RESULT", "unknown")
+          image_result = os.environ.get("FRONTEND_IMAGE_RESULT", "skipped")
+
+          if result != "success":
+              install_result = os.environ.get("FRONTEND_INSTALL_RESULT", "")
+              lint_result = os.environ.get("FRONTEND_LINT_RESULT", "")
+              typecheck_result = os.environ.get("FRONTEND_TYPECHECK_RESULT", "")
+              test_result = os.environ.get("FRONTEND_TEST_RESULT", "")
+              build_result = os.environ.get("FRONTEND_BUILD_RESULT", "")
+
+              if install_result == "failure":
+                  failed_stage = "Dependency installation (npm ci)"
+              elif lint_result == "failure":
+                  failed_stage = "ESLint"
+              elif typecheck_result == "failure":
+                  failed_stage = "TypeScript typecheck"
+              elif test_result == "failure":
+                  failed_stage = "Frontend tests"
+              elif build_result == "failure":
+                  failed_stage = "Build"
+              else:
+                  failed_stage = "Frontend check"
+
+              lines.extend([
+                  "🚨 SEOUL WAVE Frontend CI 실패",
+                  f"실패 단계 — {failed_stage}",
+              ])
+              frontend_id = os.environ.get("DISCORD_FRONTEND_ID", "").strip()
+              if re.fullmatch(r"[0-9]{17,20}", frontend_id):
+                  lines.append(f"Frontend 담당자 — <@{frontend_id}>")
+                  mentioned_users.append(frontend_id)
+                  print("Frontend 담당자 멘션 설정: 사용")
+              else:
+                  lines.append("Frontend 담당자 멘션 — DISCORD_FRONTEND_ID 미설정 또는 형식 확인 필요")
+                  print("Frontend 담당자 멘션 설정: 미사용")
+          elif image_result == "failure":
+              lines.extend([
+                  "🚨 SEOUL WAVE Frontend ECR 이미지 업로드 실패",
+                  "실패 단계 — AWS ECR 이미지 푸시",
+              ])
+              frontend_id = os.environ.get("DISCORD_FRONTEND_ID", "").strip()
+              if re.fullmatch(r"[0-9]{17,20}", frontend_id):
+                  lines.append(f"Frontend 담당자 — <@{frontend_id}>")
+                  mentioned_users.append(frontend_id)
+                  print("Frontend 담당자 멘션 설정: 사용")
+              else:
+                  lines.append("Frontend 담당자 멘션 — DISCORD_FRONTEND_ID 미설정 또는 형식 확인 필요")
+                  print("Frontend 담당자 멘션 설정: 미사용")
+          elif image_result == "success":
+              lines = ["✅ SEOUL WAVE Frontend CI 통과 및 ECR 이미지 업로드 완료"]
+          else:
+              lines = ["✅ SEOUL WAVE Frontend CI 성공"]
+
+          lines.extend([
+              f"브랜치 — {os.environ.get('BRANCH_NAME', 'unknown')}",
+              f"Commit — {os.environ.get('COMMIT_SHA', 'unknown')}",
+              f"실행 로그 — {os.environ.get('RUN_URL', '')}",
+          ])
+
+          allowed_mentions = {"parse": []}
+          if mentioned_users:
+              allowed_mentions["users"] = mentioned_users
+
+          payload = {
+              "content": "\n".join(lines),
+              "allowed_mentions": allowed_mentions,
+          }
+          request = Request(
+              webhook_url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Content-Type": "application/json",
+                  "Accept": "application/json",
+                  "User-Agent": "HanGangLocalPass-GitHubActions/1.0",
+              },
+              method="POST",
+          )
+
+          try:
+              with urlopen(request, timeout=20) as response:
+                  status_code = response.status
+          except HTTPError as error:
+              print(f"Discord webhook HTTP 응답: {error.code}")
+              raise SystemExit(1)
+          except (URLError, TimeoutError, OSError) as error:
+              print(f"Discord webhook 요청 실패: {type(error).__name__}")
+              raise SystemExit(1)
+
+          print(f"Discord webhook HTTP 응답: {status_code}")
+          if not 200 <= status_code < 300:
+              raise SystemExit(1)
+          PY

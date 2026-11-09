@@ -1,0 +1,18 @@
+# Local environment files may contain API credentials. Keep the example template shareable.
+.env
+.env.*
+!.env.example
+!.env.prod.example
+# Do not commit local source datasets.
+**/data/raw/
+*.pem
+*accessKeys.csv
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage
+node_modules/
+dist/
+coverage/
+reports/
+.nyc_output/

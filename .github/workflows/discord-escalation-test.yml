@@ -1,0 +1,28 @@
+name: Discord 15-minute acknowledgement test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Send a clearly marked test alert and wait for acknowledgement
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ vars.DISCORD_CHANNEL_ID || secrets.DISCORD_CHANNEL_ID }}
+          DISCORD_AGENT_ID: ${{ secrets.DISCORD_AGENT_ID || vars.DISCORD_AGENT_ID }}
+          DISCORD_BACKEND_ID: ${{ secrets.DISCORD_BACKEND_ID || vars.DISCORD_BACKEND_ID }}
+          DISCORD_FRONTEND_ID: ${{ secrets.DISCORD_FRONTEND_ID || vars.DISCORD_FRONTEND_ID }}
+          DISCORD_DEPLOY_ID: ${{ secrets.DISCORD_DEPLOY_ID || vars.DISCORD_DEPLOY_ID }}
+        run: python scripts/ci/discord_ack_manual.py

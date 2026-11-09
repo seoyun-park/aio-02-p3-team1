@@ -1,0 +1,87 @@
+name: SeoulWave automatic deployment
+
+on:
+  workflow_run:
+    workflows: [Verified application pipeline]
+    types: [completed]
+    branches: [dev]
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+concurrency:
+  group: seoul-wave-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'dev' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.path == '.github/workflows/pipeline.yml'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate the source run and release artifact before AWS credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python scripts/deploy/dispatch.py prepare
+          --event "$GITHUB_EVENT_PATH"
+          --request deployment-request.json
+          --evidence deployment-evidence.json
+
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::909345918351:role/SeoulWave-Deploy
+          aws-region: ap-northeast-2
+          role-session-name: SeoulWaveDeploy-${{ github.run_id }}
+
+      - name: Recheck dev head, dispatch the fixed document, and poll to terminal status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python scripts/deploy/dispatch.py send
+          --request deployment-request.json
+          --evidence deployment-evidence.json
+
+      - name: Notify Discord of deployment success or failure
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ vars.DISCORD_CHANNEL_ID || secrets.DISCORD_CHANNEL_ID }}
+          DISCORD_AGENT_ID: ${{ secrets.DISCORD_AGENT_ID || vars.DISCORD_AGENT_ID }}
+          DISCORD_DEPLOY_ID: ${{ secrets.DISCORD_DEPLOY_ID || vars.DISCORD_DEPLOY_ID }}
+          JOB_STATUS: ${{ job.status }}
+        run: >-
+          python scripts/deploy/notify.py
+          --evidence deployment-evidence.json
+          --job-status "$JOB_STATUS"
+
+      - name: Preserve sanitized deployment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-evidence
+          path: deployment-evidence.json
+          if-no-files-found: warn
+          retention-days: 30
